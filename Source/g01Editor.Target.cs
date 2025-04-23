@@ -11,5 +11,6 @@ public class g01EditorTarget : TargetRules
 		DefaultBuildSettings = BuildSettingsVersion.V5;
 		IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_4;
 		ExtraModuleNames.Add("g01");
-	}
+        ExtraModuleNames.Add("music_player");
+    }
 }

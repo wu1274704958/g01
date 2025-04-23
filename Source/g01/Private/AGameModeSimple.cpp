@@ -3,6 +3,7 @@
 
 #include "AGameModeSimple.h"
 #include "g01/T1Character.h"
+#include "MusicPlayer.h"
 
 AAGameModeSimple::AAGameModeSimple(const FObjectInitializer& ObjectInitializer) : AGameModeBase(ObjectInitializer)
 {
