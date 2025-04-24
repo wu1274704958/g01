@@ -3,6 +3,7 @@
 #include <fileop.hpp>
 #include <serialization.hpp>
 #include <json.hpp>
+#include <regex>
 namespace fs = std::filesystem;
 
 namespace lrc{
@@ -34,7 +35,7 @@ namespace lrc{
     {
         if (res && !res.value().empty())
         {
-            auto lrc = std::shared_ptr<Lrc>(new Lrc());
+            auto lrc = std::make_shared<Lrc>();
             auto cnt = res.value();
             int tb = 0, cb = -1;
             double ti = 0.0;
@@ -72,6 +73,35 @@ namespace lrc{
         }
     }
 
+    std::shared_ptr<LrcLoader::LrcType> LrcLoader::loadFromText(const std::string& key,const std::string& text)
+    {
+        if (text.at(0) == '{' && text.back() == '}')
+        {
+            try {
+                wws::Json json(text);
+                wws::Json& lrc = json.get_obj("lrc");
+                auto& inner_str = lrc.get_str("lyric");
+                std::string processed_str = std::regex_replace(inner_str, std::regex(R"(\\n)"), "\n");
+                if (auto res = load_inside(std::optional(std::move(processed_str))))
+                {
+                    map[key] = res;
+                    return res;
+                }
+                return nullptr;
+            }
+            catch (...){}
+        }
+        else
+        {
+            if (auto res = load_inside(std::move(text)))
+            {
+                map[key] = res;
+                return res;
+            }
+        }
+        return nullptr;
+    }
+
     std::shared_ptr<LrcLoader::LrcType> LrcLoader::load(const std::string& path)
     {
         if(map.find(path) != map.end())
@@ -79,40 +109,10 @@ namespace lrc{
         fs::path pa(path);
         if(fs::exists(pa))
         {
-            auto str = wws::read_from_file<1024>(pa,std::ios::binary);
-            if (str && str->at(0) == '{' && str->back() == '}')
-            {
-                try {
-                    wws::Json json(str.value());
-                    wws::Json& lrc = json.get_obj("lrc");
-                    auto& inner_str = lrc.get_str("lyric");
-                    for (size_t i = 0; i < inner_str.size(); ++i)
-                    {
-                        if (inner_str[i] == '\\' && i + 1 < inner_str.size() && inner_str[i + 1] == 'n')
-                        {
-                            inner_str[i] = '\n';
-                            inner_str.erase(i + 1, 1);
-                        }
-                    }
-                    auto res = load_inside(std::optional(std::move(inner_str)));
-                    if (res)
-                    {
-                        map[path] = res;
-                        return res;
-                    }
-                    return nullptr;
-                }
-                catch (std::exception e) { return nullptr; }
-            }
-            else
-            {
-                auto res = load_inside(std::move(str));
-                if (res)
-                {
-                    map[path] = res;
-                    return res;
-                }
-            }
+            const auto text = wws::read_from_file<1024>(pa,std::ios::binary);
+            if(!text)
+                return nullptr;
+            return loadFromText(path,*text);
         }
         return nullptr;
     }

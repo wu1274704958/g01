@@ -5,7 +5,7 @@
 #include <stack>
 #include <functional>
 #include "api_def.h"
-#include "MMFile.h"
+#include "MusicInfo.h"
 #include "MusicPlayer.h"
 
 
@@ -15,7 +15,7 @@ namespace fv {
 	public:
 		enum PUMP_MODE
 		{
-			NONE = 1,
+			NONE = 0,
 			LOOP,
 			RAND
 		};
@@ -30,17 +30,17 @@ namespace fv {
 		void setIndex(int ind);
 		bool getPumpDir();
 		void setPumpDir(bool pump_dir);
-		void setFillMusicFunc(std::function<void(const std::shared_ptr<std::vector<MMFile>>&)> f);
-		void setNextMusic(const MMFile *nm);
+		void setFillMusicFunc(std::function<void(const std::shared_ptr<std::vector<eqd_mp::MusicInfo>>&)> f);
+		void setNextMusic(const eqd_mp::MusicInfo *nm);
 		bool setNextMusic(const wchar_t* name);
         bool hasNextMusic() const;
 		
 		void init(const char* root_dir);
 		void init(const wchar_t* root_dir);
-		std::shared_ptr<std::vector<MMFile>> pop();
+		std::shared_ptr<std::vector<eqd_mp::MusicInfo>> pop();
 		void onclick(int idx);
 
-		std::function<void(const MMFile&)> onAutoPlay;
+		std::function<void(const eqd_mp::MusicInfo&)> onAutoPlay;
 
 	private:
 		void rand();
@@ -51,13 +51,13 @@ namespace fv {
 		template<size_t N>
 		void all_templet();
 
-		std::function<void(const std::shared_ptr<std::vector<MMFile>>&)> fill_music_func;
+		std::function<void(const std::shared_ptr<std::vector<eqd_mp::MusicInfo>>&)> fill_music_func;
 
 		PUMP_MODE m_mode;
-		std::stack<std::shared_ptr<std::vector<MMFile>>> m_root;
+		std::stack<std::shared_ptr<std::vector<eqd_mp::MusicInfo>>> m_root;
 		MusicPlayer &m_player;
 		int m_index;
 		bool pump_dir;
-		std::shared_ptr<MMFile> next_music;
+		std::shared_ptr<eqd_mp::MusicInfo> next_music;
 	};
 }

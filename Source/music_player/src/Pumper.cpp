@@ -1,7 +1,7 @@
 #include "Pumper.h"
-#include "GetFileName.h"
 #include <ctime>
 #include <stdio.h>
+#include "infoProvider/DefInfoProvider.h"
 
 
 fv::Pumper::Pumper( MusicPlayer &player) : m_player(player)
@@ -13,9 +13,9 @@ fv::Pumper::Pumper( MusicPlayer &player) : m_player(player)
 	next_music = nullptr;
 }
 
-void fv::Pumper::setNextMusic(const MMFile *nm)
+void fv::Pumper::setNextMusic(const eqd_mp::MusicInfo *nm)
 {
-	next_music = std::make_shared<MMFile>(*nm);
+	next_music = std::make_shared<eqd_mp::MusicInfo>(*nm);
 }
 
 bool fv::Pumper::setNextMusic(const wchar_t* name)
@@ -23,10 +23,10 @@ bool fv::Pumper::setNextMusic(const wchar_t* name)
 	auto current = this->m_root.top();
 	for (int i = 0; i < current->size(); ++i)
 	{
-		auto& n = current->at(i).getNameStr();
+		auto& n = current->at(i).Name();
 		if (n.find(name) != std::wstring::npos)
 		{
-			next_music = std::make_shared<MMFile>(current->at(i));
+			next_music = std::make_shared<eqd_mp::MusicInfo>(current->at(i));
 			return true;
 		}
 	}
@@ -94,7 +94,7 @@ void fv::Pumper::setPumpDir(bool v)
 	this->pump_dir = v;
 }
 
-void fv::Pumper::setFillMusicFunc(std::function<void(const std::shared_ptr<std::vector<MMFile>>&)> f)
+void fv::Pumper::setFillMusicFunc(std::function<void(const std::shared_ptr<std::vector<eqd_mp::MusicInfo>>&)> f)
 {
 	fill_music_func = f;
 }
@@ -127,11 +127,11 @@ void fv::Pumper::all_templet()
 				m_index = 0;
 			}
 		}
-		if (m_root.top()->at(m_index).getType() == MMFile::TYPE_DIR && pump_dir)
+		if (m_root.top()->at(m_index).Type() == eqd_mp::MusicInfo::EType::Album && pump_dir)
 		{
-			std::shared_ptr<std::vector<MMFile>> temp = std::make_shared<std::vector<MMFile>>();
+			std::shared_ptr<std::vector<eqd_mp::MusicInfo>> temp = std::make_shared<std::vector<eqd_mp::MusicInfo>>();
 			temp->reserve(5);
-			GetFileName::getFileNameW(*temp, m_root.top()->at(m_index).getAbsolutePath());
+			//GetFileName::getFileNameW(*temp, m_root.top()->at(m_index).getAbsolutePath());
 			m_root.push(temp);
 			if(fill_music_func)
 				fill_music_func(temp);
@@ -168,9 +168,9 @@ void fv::Pumper::cleanup()
 
 void fv::Pumper::init(const char* root_dir)
 {
-	std::shared_ptr<std::vector<MMFile>> temp = std::make_shared<std::vector<MMFile>>();
+	std::shared_ptr<std::vector<eqd_mp::MusicInfo>> temp = std::make_shared<std::vector<eqd_mp::MusicInfo>>();
 	temp->reserve(5);
-	GetFileName::getFileNameA(*temp, root_dir);
+	//GetFileName::getFileNameA(*temp, root_dir);
 	m_root.push(temp);
 	if (fill_music_func)
 		fill_music_func(temp);
@@ -179,20 +179,22 @@ void fv::Pumper::init(const char* root_dir)
 
 void fv::Pumper::init(const wchar_t* root_dir)
 {
-	std::shared_ptr<std::vector<MMFile>> temp = std::make_shared<std::vector<MMFile>>();
+ 	std::shared_ptr<std::vector<eqd_mp::MusicInfo>> temp = std::make_shared<std::vector<eqd_mp::MusicInfo>>();
 	temp->reserve(5);
-	GetFileName::getFileNameW(*temp, root_dir);
+	//GetFileName::getFileNameW(*temp, root_dir);
+    eqd_mp::DefInfoProvider provider(root_dir);
+    *temp = provider.getRoot();
 	m_root.push(temp);
 	if (fill_music_func)
 		fill_music_func(temp);
 	m_index = 0;
 }
 
-std::shared_ptr<std::vector<MMFile>> fv::Pumper::pop()
+std::shared_ptr<std::vector<eqd_mp::MusicInfo>> fv::Pumper::pop()
 {
 	if (m_root.size() <= 1)
 		return nullptr;
-	std::shared_ptr<std::vector<MMFile>> res = m_root.top();
+	std::shared_ptr<std::vector<eqd_mp::MusicInfo>> res = m_root.top();
 	m_root.pop();
 	return res;
 }
@@ -203,11 +205,11 @@ void fv::Pumper::onclick(int idx)
 	if (mfs && mfs->size() > idx)
 	{
 		auto& pmf = (*mfs)[idx];
-		if (pmf.getType() == MMFile::TYPE_DIR)
+		if (pmf.Type() == eqd_mp::MusicInfo::EType::Album)
 		{
-			auto temp_v = std::make_shared<std::vector<MMFile>>();
+			auto temp_v = std::make_shared<std::vector<eqd_mp::MusicInfo>>();
 			temp_v->reserve(5);
-			GetFileName::getFileNameW(*temp_v, pmf.getAbsolutePath());
+			//GetFileName::getFileNameW(*temp_v, pmf.getAbsolutePath());
 
 			//std::lock_guard<std::mutex> lock(load_file_name_mutex);
 			m_root.push(temp_v);

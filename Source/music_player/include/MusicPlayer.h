@@ -1,7 +1,7 @@
 #pragma once
 #include <bass.h>
 #include "api_def.h"
-#include "MMFile.h"
+#include "MusicInfo.h"
 
 namespace fv {
 	class EQD_MP_API MusicPlayer
@@ -11,7 +11,7 @@ namespace fv {
 		MusicPlayer(bool enable3d = false);
 		~MusicPlayer();
 
-		int playStream(const  MMFile& file, bool loop = false);
+		int playStream(const eqd_mp::MusicInfo& file, bool loop = false);
 		void play(bool loop = false);
 		void pause();
 		void stop();

@@ -1,6 +1,6 @@
 #include "MusicPlayer.h"
 #include <bassflac.h>
-#include "MMFile.h"
+#include "MusicInfo.h"
 
 #ifndef PF_WIN32 
 #define WCHAR void
@@ -35,7 +35,7 @@ fv::MusicPlayer::~MusicPlayer()
 	BASS_Free();
 }
 
-int fv::MusicPlayer::playStream(const  MMFile& file, bool loop)
+int fv::MusicPlayer::playStream(const eqd_mp::MusicInfo& file, bool loop)
 {
 	if (init_error_code != 0)
 		return init_error_code;
@@ -68,16 +68,16 @@ int fv::MusicPlayer::playStream(const  MMFile& file, bool loop)
 	{
 		if (IsEnable3D)
 		{
-			chan = BASS_SampleLoad(FALSE, (const WCHAR *)file.getAbsolutePath(), 0, 0, 1,BASS_MUSIC_FLOAT | BASS_SAMPLE_3D | BASS_MUSIC_MONO );
+			chan = BASS_SampleLoad(FALSE, (const WCHAR *)file.Path().c_str(), 0, 0, 1,BASS_MUSIC_FLOAT | BASS_SAMPLE_3D | BASS_MUSIC_MONO );
 			IsSupport3D = true;
 			if (!chan && BASS_ErrorGetCode() == BASS_ERROR_NO3D)
 			{
-				if (lstrcmpW(file.getSuffix(), MMFILE_FLAC_LIT_STR) == 0)
+				if (file.Suffix() == L".flac")
 				{
-					chan = BASS_FLAC_StreamCreateFile(FALSE, (const WCHAR *)file.getAbsolutePath(), 0, 0, 0);
+					chan = BASS_FLAC_StreamCreateFile(FALSE, (const WCHAR *)file.Path().c_str(), 0, 0, 0);
 				}
 				else {
-					chan = BASS_StreamCreateFile(FALSE, (const WCHAR *)file.getAbsolutePath(), 0, 0, 0);
+					chan = BASS_StreamCreateFile(FALSE, (const WCHAR *)file.Path().c_str(), 0, 0, 0);
 				}
 				
 				IsSupport3D = false;
@@ -85,12 +85,12 @@ int fv::MusicPlayer::playStream(const  MMFile& file, bool loop)
 		}
 		else
 		{
-			if (lstrcmpW(file.getSuffix(), MMFILE_FLAC_LIT_STR) == 0)
+			if (file.Suffix() == L".flac")
 			{
-				chan = BASS_FLAC_StreamCreateFile(FALSE, (const WCHAR *)file.getAbsolutePath(), 0, 0, 0);
+				chan = BASS_FLAC_StreamCreateFile(FALSE, (const WCHAR *)file.Path().c_str(), 0, 0, 0);
 			}
 			else {
-				chan = BASS_StreamCreateFile(FALSE, (const WCHAR *)file.getAbsolutePath(), 0, 0, 0);
+				chan = BASS_StreamCreateFile(FALSE, (const WCHAR *)file.Path().c_str(), 0, 0, 0);
 			}
 		}
 	}

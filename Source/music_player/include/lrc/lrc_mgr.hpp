@@ -1,6 +1,6 @@
 #pragma once
 #include "lrc_loader.h"
-#include "../MMFile.h"
+#include "../MusicInfo.h"
 #include <comm.hpp>
 #include "lrc_analyse.h"
 #include "lrc_view.h"
@@ -44,7 +44,7 @@ struct LrcMgr
     static_assert(has_analyse_lrc_func_vt<Analyse,std::shared_ptr<LRC_TYPE>,double,size_t>::value,"Bad lrc analyse type!!!");
     static_assert((has_onplay_lrc_func_vt<View,std::shared_ptr<LRC_TYPE>>::value && 
         has_playing_lrc_func_vt<View,size_t>::value),"Bad lrc view type!!!");
-    void onplay(const MMFile& f)
+    void onplay(const MusicInfo& f)
     {
         
 #ifdef PF_WIN32

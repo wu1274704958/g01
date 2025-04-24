@@ -1,0 +1,87 @@
+#pragma once
+
+#include <string>
+#include <string_view>
+#include "api_def.h"
+#include <filesystem>
+
+#ifdef PF_WIN32
+#define MUSIC_INFO_STR_TYPE std::wstring
+#define MUSIC_INFO_STR_VIEW_TYPE std::wstring_view
+#define MUSIC_INFO_CHAR_TYPE wchar_t
+#else
+#define MUSIC_INFO_STR_TYPE std::string
+#define MUSIC_INFO_STR_VIEW_TYPE std::string_view
+#define MUSIC_INFO_CHAR_TYPE char
+#endif
+
+namespace eqd_mp
+{
+    class EQD_MP_API MusicInfo {
+        using CHAR_TYPE = MUSIC_INFO_CHAR_TYPE;
+        using STR_TYPE = MUSIC_INFO_STR_TYPE;
+        using STR_VIEW_TYPE = MUSIC_INFO_STR_VIEW_TYPE;
+    public:
+        enum class EType
+        {
+            None = 0,
+            Music = 1,
+            Album
+        };
+
+    private:
+
+        EType _type;
+        MUSIC_INFO_STR_VIEW_TYPE _name;
+        MUSIC_INFO_STR_VIEW_TYPE _suffix;
+        MUSIC_INFO_STR_TYPE _path;
+    public:
+
+        MusicInfo();
+        MusicInfo(const MusicInfo &oth) = default;
+        MusicInfo(MusicInfo &&oth) = default;
+        MusicInfo& operator=(const MusicInfo &oth) = default;
+        MusicInfo& operator=(MusicInfo &&oth) = default;
+
+
+        [[nodiscard]] EType Type() const
+        {
+            return _type;
+        }
+
+        void Set_Type(EType Type)
+        {
+            _type = Type;
+        }
+
+        [[nodiscard]] const MUSIC_INFO_STR_VIEW_TYPE& Name() const
+        {
+            return _name;
+        }
+
+        void Set_Name(const MUSIC_INFO_STR_VIEW_TYPE& Name)
+        {
+            _name = Name;
+        }
+
+        [[nodiscard]] const MUSIC_INFO_STR_VIEW_TYPE& Suffix() const
+        {
+            return _suffix;
+        }
+
+        void Set_Suffix(const MUSIC_INFO_STR_VIEW_TYPE& Suffix)
+        {
+            _suffix = Suffix;
+        }
+
+        [[nodiscard]] const MUSIC_INFO_STR_TYPE& Path() const
+        {
+            return _path;
+        }
+
+        void Set_Path(const MUSIC_INFO_STR_TYPE& Path)
+        {
+            _path = Path;
+        }
+    };
+}
