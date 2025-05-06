@@ -17,7 +17,7 @@ public class g01 : ModuleRules
         PrivateIncludePaths.AddRange(new string[] { "g01" });
         PublicIncludePaths.AddRange(new string[] { "g01" });
 
-
+        CppStandard = CppStandardVersion.Cpp20;
         // Uncomment if you are using Slate UI
         // PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
 

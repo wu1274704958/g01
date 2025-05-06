@@ -2,7 +2,18 @@
 #include <ctime>
 #include <stdio.h>
 #include "infoProvider/DefInfoProvider.h"
+#include "playlistHandler/LoopPlaylist.h"
+#include "PlaylistMgr.hpp"
+#include "fileLoader/DefFileLoader.h"
+#include "fileLoader/DefFileLoaderWide.h"
+#include "musicPlayer/DefMusicPlayer.h"
+#include "infoProvider/DefInfoProvider.h"
+#include "musicLoader/DefMusicLoader.h"
+#include "musicLoader/FlacLoader.h"
 
+using namespace eqd_mp;
+
+using T = PlaylistMgr<DefMusicPlayer<DefFileLoaderWide,DefMusicLoader,FlacLoader>,DefInfoProvider,PlaylistPair<EPumpMode::Loop,LoopPlaylist>>;
 
 fv::Pumper::Pumper( MusicPlayer &player) : m_player(player)
 {

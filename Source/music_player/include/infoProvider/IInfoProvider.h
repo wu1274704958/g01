@@ -16,4 +16,10 @@ namespace eqd_mp
     protected:
         std::vector<std::function<bool(const MusicInfo&)>> _filters;
     };
+
+    template <typename T>
+    concept VaildInfoProvider = requires
+    {
+        requires std::is_base_of_v<IInfoProvider,T>;
+    };
 }

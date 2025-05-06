@@ -1,4 +1,4 @@
-﻿#include "DefInfoProvider.h"
+﻿#include <infoProvider/DefInfoProvider.h>
 #include <filesystem>
 namespace fs = std::filesystem; 
 

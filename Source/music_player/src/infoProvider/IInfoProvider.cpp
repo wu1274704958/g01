@@ -1,4 +1,4 @@
-﻿#include "IInfoProvider.h"
+﻿#include "infoProvider/IInfoProvider.h"
 
 std::vector<eqd_mp::MusicInfo> eqd_mp::IInfoProvider::getRoot()
 {

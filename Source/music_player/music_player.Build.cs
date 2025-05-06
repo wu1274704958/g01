@@ -30,6 +30,7 @@ public class music_player : ModuleRules
         });
 
         bEnableExceptions = true;
+        CppStandard = CppStandardVersion.Cpp20;
 
         PrivateDefinitions.AddRange(new string[] { "PF_WIN32", "EQD_MP_API" });
         PublicDefinitions.AddRange(new string[] { "PF_WIN32", "EQD_MP_API" });

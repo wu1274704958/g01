@@ -44,44 +44,24 @@ namespace eqd_mp
         MusicInfo& operator=(MusicInfo &&oth) = default;
 
 
-        [[nodiscard]] EType Type() const
-        {
-            return _type;
-        }
+        [[nodiscard]] EType Type() const;
 
-        void Set_Type(EType Type)
-        {
-            _type = Type;
-        }
+        void Set_Type(EType Type);
 
-        [[nodiscard]] const MUSIC_INFO_STR_VIEW_TYPE& Name() const
-        {
-            return _name;
-        }
+        [[nodiscard]] const MUSIC_INFO_STR_VIEW_TYPE& Name() const;
 
-        void Set_Name(const MUSIC_INFO_STR_VIEW_TYPE& Name)
-        {
-            _name = Name;
-        }
+        void Set_Name(const MUSIC_INFO_STR_VIEW_TYPE& Name);
 
-        [[nodiscard]] const MUSIC_INFO_STR_VIEW_TYPE& Suffix() const
-        {
-            return _suffix;
-        }
+        [[nodiscard]] const MUSIC_INFO_STR_VIEW_TYPE& Suffix() const;
 
-        void Set_Suffix(const MUSIC_INFO_STR_VIEW_TYPE& Suffix)
-        {
-            _suffix = Suffix;
-        }
+        void Set_Suffix(const MUSIC_INFO_STR_VIEW_TYPE& Suffix);
 
-        [[nodiscard]] const MUSIC_INFO_STR_TYPE& Path() const
-        {
-            return _path;
-        }
+        [[nodiscard]] const MUSIC_INFO_STR_TYPE& Path() const;
 
-        void Set_Path(const MUSIC_INFO_STR_TYPE& Path)
-        {
-            _path = Path;
-        }
+        void Set_Path(const MUSIC_INFO_STR_TYPE& Path);
     };
+
+    bool operator==(const MusicInfo& Lhs, const MusicInfo& RHS);
+
+    bool operator!=(const MusicInfo& Lhs, const MusicInfo& RHS);
 }
