@@ -4,7 +4,7 @@
 
 namespace eqd_mp
 {
-    struct LoopPlaylist : public IPlaylistHandler
+    struct EQD_MP_API LoopPlaylist : public IPlaylistHandler
     {
         std::vector<MusicInfo*> getPlaylist(const std::vector<MusicInfo> &originList);
         protected:

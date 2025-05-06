@@ -5,6 +5,8 @@ enum class EPumpMode : uint8
 {
     None = 0    UMETA(DisplayName = "None"),
     Loop = 1    UMETA(DisplayName = "Loop"),
-    Rand = 2    UMETA(DisplayName = "Rand")
+    Rand = 2    UMETA(DisplayName = "Rand"),
+    NextSong = 3 UMETA(DisplayName = "NextSong"),
+    SingleLoop = 4 UMETA(DisplayName = "SingleLoop")
 };
 

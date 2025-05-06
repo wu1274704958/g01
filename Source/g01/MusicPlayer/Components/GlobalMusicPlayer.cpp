@@ -3,6 +3,8 @@
 
 #include "MusicPlayer/Components/GlobalMusicPlayer.h"
 
+#include "MusicPlayer/enum/EPumpMode.h"
+
 // Sets default values for this component's properties
 UGlobalMusicPlayer::UGlobalMusicPlayer()
 {
@@ -23,8 +25,8 @@ void UGlobalMusicPlayer::BeginPlay()
         InitMusicPlayer();
     if (IsInitMusicPlayer() && AutoPlay)
     {
-        pumper->setMode(GetPumpModeRaw());
-        pumper->pump();
+        pumper->set_Mode(GetPumpModeRaw());
+        pumper->play();
     }
 	// ...
 	
@@ -44,11 +46,7 @@ void UGlobalMusicPlayer::TickComponent(float DeltaTime, ELevelTick TickType, FAc
 
 	// ...
 
-    if (!player->isOff() && player->getActive() == BASS_ACTIVE_STOPPED &&
-        (pumper->getMode() != fv::Pumper::NONE || pumper->hasNextMusic()))
-    {
-        pumper->pump();
-    }
+    pumper->tick();
 }
 
 bool UGlobalMusicPlayer::InitMusicPlayer()
@@ -56,10 +54,11 @@ bool UGlobalMusicPlayer::InitMusicPlayer()
     if(IsInitMusicPlayer())
         return true;
         
-    player = std::make_shared<fv::MusicPlayer>();
-    pumper = std::make_shared<fv::Pumper>(*player);
+    player = std::make_shared<MusicPlayer>();
+    pumper = std::make_shared<PlaylistMgr>(*player);
 
-    pumper->init(*MusicRootPath);
+    const std::wstring path(*MusicRootPath);
+    pumper->initInfoProvider(AutoPlay,path);
     return true;
 }
 
@@ -82,9 +81,9 @@ void UGlobalMusicPlayer::SetMusicRootPath(const FString& path)
     MusicRootPath = path;
 }
 
-fv::Pumper::PUMP_MODE UGlobalMusicPlayer::GetPumpModeRaw() const
+eqd_mp::EPumpMode UGlobalMusicPlayer::GetPumpModeRaw() const
 {
-    return fv::Pumper::RAND;
+    return eqd_mp::EPumpMode::Rand;
 }
 
 const FString& UGlobalMusicPlayer::GetMusicRootPath() const

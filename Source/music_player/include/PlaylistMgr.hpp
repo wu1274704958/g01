@@ -31,18 +31,19 @@ namespace eqd_mp
     }
     struct PlaylistMgr
     {
-        PlaylistMgr(MP& player,EPumpMode mode = EPumpMode::Loop) :
+        using PLS_TUPLE = std::tuple<PLS...>;
+        PlaylistMgr(MP& player) :
             _player(player),
-            _mode(mode)
+            _mode(EPumpMode::None)
         {
             
         }
         template<typename ... Args>
-        void initInfoProvider(bool autoPlay,Args ... args)
+        void initInfoProvider(bool autoPlay,Args&& ... args)
         requires VaildConstructArgs<IP,Args...>
         {
             _musicProvider = std::make_shared<IP>(std::forward<Args>(args)...);
-            _musicProvider->addFilter(std::bind(&MP::isSupport,&_player,std::placeholders::_2));
+            _musicProvider->addFilter([this](const MusicInfo& info)->bool{  return _player.isSupport(info);  });
             _sourceList.push(_musicProvider->getRoot());
             _playlist = generatePlaylistByMode(_mode);
             if (!_playlist.empty() && autoPlay)
@@ -50,12 +51,12 @@ namespace eqd_mp
         }
 
         template<typename ... Args>
-        std::vector<MusicInfo*> generatePlaylistByMode(EPumpMode mode,Args ... args)
+        std::vector<MusicInfo*> generatePlaylistByMode(EPumpMode mode,Args&& ... args)
         {
             std::vector<MusicInfo*> result;
             if (_sourceList.empty() || _sourceList.top().empty())
                 return result;
-            ((mode == PLS::Mode ? ((result = generatePlaylistByModeInside<typename PLS::Type,Args...>(std::forward<Args>(args)...)),false):false),...);
+            result = generatePlaylistByModeInside<0>(mode,std::forward<Args>(args)...);
             return result;
         }
 
@@ -113,13 +114,32 @@ namespace eqd_mp
         }
 
     protected:
+        template<size_t I,typename ... Args>
+        std::vector<MusicInfo*> generatePlaylistByModeInside(EPumpMode mode,Args&& ... args)
+        {
+            if constexpr (I >= std::tuple_size_v<PLS_TUPLE> )
+            {
+                return {};
+            }else
+            {
+                if (typename std::tuple_element_t<I,PLS_TUPLE>::Mode == mode)
+                    return generatePlaylistByModeInside<typename std::tuple_element_t<I,PLS_TUPLE>::Type>(std::forward<Args>(args)...);
+                else
+                    return generatePlaylistByModeInside<I + 1>(mode,std::forward<Args>(args)...);
+            }
+            return {};
+        }
         template<typename T,typename ... Args>
-        requires VaildPlaylistHandler<T> && VaildConstructArgs<T,Args...>
-        std::vector<MusicInfo*> generatePlaylistByModeInside(Args ... args)
+        requires VaildPlaylistHandler<T>
+        std::vector<MusicInfo*> generatePlaylistByModeInside(Args&& ... args)
         {
             std::vector<MusicInfo*> result;
-            T playlistHandler(std::forward<Args>(args)...);
-            return playlistHandler.getPlaylist(_sourceList.top());
+            if constexpr (VaildConstructArgs<T,Args...>)
+            {
+                T playlistHandler(std::forward<Args>(args)...);
+                return playlistHandler.getPlaylist(_sourceList.top());
+            }
+            return result;
         }
         
     protected:

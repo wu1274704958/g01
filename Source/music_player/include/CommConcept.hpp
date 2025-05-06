@@ -3,8 +3,8 @@
 namespace eqd_mp
 {
     template <typename T,typename ...Args>
-    concept VaildConstructArgs = requires(Args ... args)
+    concept VaildConstructArgs = requires(Args&& ... args)
     {
-        requires new T(args...);
+        new T(std::forward<Args>(args)...);
     };
 }

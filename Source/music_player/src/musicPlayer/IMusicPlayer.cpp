@@ -39,3 +39,13 @@ bool eqd_mp::IMusicPlayer::isSupport(const MusicInfo&) const
 {
     return false;
 }
+
+int eqd_mp::IMusicPlayer::getError() const
+{
+    return 0;
+}
+
+bool eqd_mp::IMusicPlayer::initialized() const
+{
+    return false;
+}

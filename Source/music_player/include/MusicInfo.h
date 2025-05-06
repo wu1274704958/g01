@@ -6,13 +6,13 @@
 #include <filesystem>
 
 #ifdef PF_WIN32
-#define MUSIC_INFO_STR_TYPE std::wstring
-#define MUSIC_INFO_STR_VIEW_TYPE std::wstring_view
-#define MUSIC_INFO_CHAR_TYPE wchar_t
+using MUSIC_INFO_STR_TYPE = std::wstring;
+using MUSIC_INFO_STR_VIEW_TYPE = std::wstring_view;
+using MUSIC_INFO_CHAR_TYPE = wchar_t;
 #else
-#define MUSIC_INFO_STR_TYPE std::string
-#define MUSIC_INFO_STR_VIEW_TYPE std::string_view
-#define MUSIC_INFO_CHAR_TYPE char
+using MUSIC_INFO_STR_TYPE = std::string;
+using MUSIC_INFO_STR_VIEW_TYPE = std::string_view;
+using MUSIC_INFO_CHAR_TYPE = char;
 #endif
 
 namespace eqd_mp

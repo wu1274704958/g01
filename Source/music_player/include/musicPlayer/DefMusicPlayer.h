@@ -1,7 +1,8 @@
 ﻿#pragma once
 #include "IMusicPlayer.h"
-#include "tool.h"
+#include "fileLoader/IFileLoader.h"
 #include "musicLoader/IMusicLoader.h"
+#include <bass.h>
 
 namespace eqd_mp
 {
@@ -13,12 +14,25 @@ namespace eqd_mp
     }
     struct DefMusicPlayer : public IMusicPlayer
     {
+        DefMusicPlayer()
+        {
+            if (BASS_Init(-1, 44100, 0, NULL, NULL))
+                _initialized = true;
+        }
         void clear()
         {
             if (_stream)
             {
                 BASS_SampleFree(_stream);
                 _stream = NULL;
+            }
+        }
+        void unInitBASS()
+        {
+            if (_initialized)
+            {
+                BASS_Free();
+                _initialized = false;
             }
         }
         bool play(const MusicInfo& info,bool loop)
@@ -92,9 +106,19 @@ namespace eqd_mp
         {
             return (std::get<ML>(_musicLoader).isSupport(music.Suffix()) || ... );
         }
-        ~DefMusicPlayer()
+        ~DefMusicPlayer() 
         {
             stop();
+            clear();
+            unInitBASS();
+        }
+        int getError() const
+        {
+            return BASS_ErrorGetCode();
+        }
+        bool initialized() const
+        {
+            return _initialized;
         }
     protected:
         template<size_t I>
@@ -117,6 +141,7 @@ namespace eqd_mp
         const MusicInfo* _currentPlaying = nullptr;
         FL _fileLoader;
         std::tuple<ML...> _musicLoader;
+        bool _initialized = false;
     };
     
 }

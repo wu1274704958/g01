@@ -4,9 +4,9 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
-#include "MusicPlayer.h"
 #include "Pumper.h"
 #include <memory>
+#include "music_player/music_player.h"
 #include "GlobalMusicPlayer.generated.h"
 
 
@@ -41,12 +41,12 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Music")
     const FString& GetMusicRootPath() const;
 
-    fv::Pumper::PUMP_MODE GetPumpModeRaw() const;
+    eqd_mp::EPumpMode GetPumpModeRaw() const;
 
 
 protected:
-    std::shared_ptr<fv::MusicPlayer> player;
-    std::shared_ptr<fv::Pumper> pumper;
+    std::shared_ptr<MusicPlayer> player;
+    std::shared_ptr<PlaylistMgr> pumper;
 
     UPROPERTY(EditAnywhere, Category = "Music")
     FString MusicRootPath;

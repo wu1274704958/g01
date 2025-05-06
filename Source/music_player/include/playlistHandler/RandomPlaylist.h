@@ -3,7 +3,7 @@
 
 namespace eqd_mp
 {
-    struct RandomPlaylist : public IPlaylistHandler
+    struct EQD_MP_API RandomPlaylist : public IPlaylistHandler
     {
         RandomPlaylist(int seed = 0) : _seed(seed) {}
         std::vector<MusicInfo*> getPlaylist(const std::vector<MusicInfo> &originList);

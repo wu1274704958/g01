@@ -14,7 +14,7 @@ namespace eqd_mp
         {
             return {};
         }
-        bool isSupport(const S& suffix)
+        bool isSupport(const S& suffix) const
         {
             return false;
         }

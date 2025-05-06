@@ -16,6 +16,8 @@ namespace eqd_mp
         const MusicInfo* getCurrentPlaying() const;
         bool isSupport(const MusicInfo&) const;
         void clear();
+        int getError() const;
+        bool initialized() const;
     };
 
     template<typename T>

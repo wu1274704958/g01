@@ -7,7 +7,7 @@ std::pair<bool,HSTREAM> eqd_mp::FlacLoader::loadMusic(const std::span<uint8_t>& 
     return std::make_pair(stream != 0,stream);
 }
 
-bool eqd_mp::FlacLoader::isSupport(const std::wstring_view& suffix)
+bool eqd_mp::FlacLoader::isSupport(const std::wstring_view& suffix) const
 {
     return suffix == L".flac";
 }

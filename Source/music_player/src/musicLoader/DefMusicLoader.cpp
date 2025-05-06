@@ -6,7 +6,7 @@ std::pair<bool,HSTREAM> eqd_mp::DefMusicLoader::loadMusic(const std::span<uint8_
     return std::make_pair(stream != 0,stream);
 }
 
-bool eqd_mp::DefMusicLoader::isSupport(const std::wstring_view& suffix)
+bool eqd_mp::DefMusicLoader::isSupport(const std::wstring_view& suffix) const
 {
     return suffix == L".mp3" || suffix == L".wav";
 }
