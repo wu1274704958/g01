@@ -110,6 +110,7 @@ namespace eqd_mp
                 current = current % size;
             if (current < 0)
                 current = (size + current) % size;
+            _currentSong = current;
             play();
         }
 

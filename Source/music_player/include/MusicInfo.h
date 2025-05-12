@@ -38,9 +38,9 @@ namespace eqd_mp
     public:
 
         MusicInfo();
-        MusicInfo(const MusicInfo &oth) = default;
+        MusicInfo(const MusicInfo &oth) = delete;
         MusicInfo(MusicInfo &&oth) = default;
-        MusicInfo& operator=(const MusicInfo &oth) = default;
+        MusicInfo& operator=(const MusicInfo &oth) = delete;
         MusicInfo& operator=(MusicInfo &&oth) = default;
 
 

@@ -42,7 +42,7 @@ std::vector<eqd_mp::MusicInfo> eqd_mp::DefInfoProvider::getMusicByPath(const std
             musicInfo.Set_Suffix(subStr(musicInfo.Path(), fileExtension));
            
             if (filter(musicInfo)) 
-                result.push_back(musicInfo);
+                result.push_back(std::move(musicInfo));
         } else if (entry.is_directory()) {
 #ifdef PF_WIN32
                 auto filePath = entry.path().wstring();
@@ -56,7 +56,7 @@ std::vector<eqd_mp::MusicInfo> eqd_mp::DefInfoProvider::getMusicByPath(const std
             musicInfo.Set_Path(filePath);
             musicInfo.Set_Name(subStr(musicInfo.Path(), fileName));
             if (filter(musicInfo)) 
-                result.push_back(musicInfo);
+                result.push_back(std::move(musicInfo));
         }
     }
     return result;

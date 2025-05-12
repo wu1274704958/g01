@@ -26,7 +26,7 @@ fv::Pumper::Pumper( MusicPlayer &player) : m_player(player)
 
 void fv::Pumper::setNextMusic(const eqd_mp::MusicInfo *nm)
 {
-	next_music = std::make_shared<eqd_mp::MusicInfo>(*nm);
+	//next_music = std::make_shared<eqd_mp::MusicInfo>(*nm);
 }
 
 bool fv::Pumper::setNextMusic(const wchar_t* name)
@@ -37,7 +37,7 @@ bool fv::Pumper::setNextMusic(const wchar_t* name)
 		auto& n = current->at(i).Name();
 		if (n.find(name) != std::wstring::npos)
 		{
-			next_music = std::make_shared<eqd_mp::MusicInfo>(current->at(i));
+			///next_music = std::make_shared<eqd_mp::MusicInfo>(current->at(i));
 			return true;
 		}
 	}
