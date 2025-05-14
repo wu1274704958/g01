@@ -12,7 +12,7 @@ namespace eqd_mp
         requires VaildFileLoader<FL,MUSIC_INFO_STR_TYPE>;
         requires (VaildMusicLoader<ML,HSTREAM,MUSIC_INFO_STR_VIEW_TYPE> && ...);
     }
-    struct DefMusicPlayer : public IMusicPlayer
+    struct DefMusicPlayer : public IMusicPlayer<HSTREAM>
     {
         DefMusicPlayer()
         {
@@ -65,6 +65,8 @@ namespace eqd_mp
         }
         bool pause()
         {
+            if (!_stream)
+                return false;
             auto state = BASS_ChannelIsActive(_stream);
             if (_stream && state != BASS_ACTIVE_PAUSED && state != BASS_ACTIVE_STOPPED)
             {
@@ -75,6 +77,8 @@ namespace eqd_mp
         }
         bool resume()
         {
+            if (!_stream)
+                return false;
             auto state = BASS_ChannelIsActive(_stream);
             if (_stream && state != BASS_ACTIVE_PLAYING && state != BASS_ACTIVE_STOPPED)
             {
@@ -85,6 +89,8 @@ namespace eqd_mp
         }
         bool rewind()
         {
+            if (!_stream)
+                return false;
             auto state = BASS_ChannelIsActive(_stream);
             if (_stream && state != BASS_ACTIVE_PLAYING && state != BASS_ACTIVE_STOPPED)
             {
@@ -95,6 +101,8 @@ namespace eqd_mp
         }
         bool isPlaying() const
         {
+            if (!_stream)
+                return false;
             auto state = BASS_ChannelIsActive(_stream);
             return state == BASS_ACTIVE_PLAYING;
         }
@@ -119,6 +127,19 @@ namespace eqd_mp
         bool initialized() const
         {
             return _initialized;
+        }
+        const HSTREAM& getCurrentMusic() const
+        {
+            return _stream;
+        }
+        int getChannelCount() const
+        {
+            if (_stream == NULL)
+                return 0;
+            BASS_CHANNELINFO info = {};
+            if (BASS_ChannelGetInfo(_stream, &info))
+                return info.chans;
+            return 0;
         }
     protected:
         template<size_t I>

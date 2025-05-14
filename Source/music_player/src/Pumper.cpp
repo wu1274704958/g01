@@ -10,10 +10,11 @@
 #include "infoProvider/DefInfoProvider.h"
 #include "musicLoader/DefMusicLoader.h"
 #include "musicLoader/FlacLoader.h"
+#include "soundVisualizationMgr/DefSoundVisualizationMgr.h"
 
 using namespace eqd_mp;
 
-using T = PlaylistMgr<DefMusicPlayer<DefFileLoaderWide,DefMusicLoader,FlacLoader>,DefInfoProvider,PlaylistPair<EPumpMode::Loop,LoopPlaylist>>;
+using T = PlaylistMgr<DefMusicPlayer<DefFileLoaderWide,DefMusicLoader,FlacLoader>,DefInfoProvider,PlaylistPair<EPumpMode::Loop,LoopPlaylist>>;     
 
 fv::Pumper::Pumper( MusicPlayer &player) : m_player(player)
 {

@@ -13,6 +13,7 @@
 #include "playlistHandler/LoopPlaylist.h"
 #include "playlistHandler/NextSongPlaylist.h"
 #include "playlistHandler/RandomPlaylist.h"
+#include "soundVisualizationMgr/DefSoundVisualizationMgr.h"
 
 using MusicPlayer = eqd_mp::DefMusicPlayer<eqd_mp::DefFileLoaderWide,
                                            eqd_mp::DefMusicLoader,
@@ -23,4 +24,4 @@ using PlaylistMgr = eqd_mp::PlaylistMgr<MusicPlayer, eqd_mp::DefInfoProvider,
                                         eqd_mp::PlaylistPair<eqd_mp::EPumpMode::Rand, eqd_mp::RandomPlaylist>,
                                         eqd_mp::PlaylistPair<eqd_mp::EPumpMode::NextSong, eqd_mp::NextSongPlaylist>>;
 
-
+using SoundVisualizationMgr = eqd_mp::DefSoundVisualizationMgr<MusicPlayer>;

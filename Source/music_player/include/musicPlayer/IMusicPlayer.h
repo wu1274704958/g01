@@ -4,8 +4,10 @@
 
 namespace eqd_mp
 {
-    struct EQD_MP_API IMusicPlayer
+    template<typename T>
+    struct IMusicPlayer
     {
+        using MUSIC_TYPE = T;
     public:
         bool play(const MusicInfo& info,bool loop);
         bool stop();
@@ -18,12 +20,20 @@ namespace eqd_mp
         void clear();
         int getError() const;
         bool initialized() const;
+        const T& getCurrentMusic() const;
+        int getChannelCount() const;
     };
 
+    template<typename T,typename MT>
+    concept VaildMusicPlayerWithMT = requires
+    {
+        requires std::is_base_of_v<IMusicPlayer<MT>, T>;  
+    };
     template<typename T>
     concept VaildMusicPlayer = requires
     {
-        requires std::is_base_of_v<IMusicPlayer, T>;  
+        requires std::is_base_of_v<IMusicPlayer<typename T::MUSIC_TYPE>, T>;  
     };
-    
 }
+
+#include "IMusicPlayer.hpp"
