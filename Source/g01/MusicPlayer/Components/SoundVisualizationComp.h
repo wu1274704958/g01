@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "SoundVisualizationMgrActor.h"
+#include "../Actor/SoundVisualizationMgrActor.h"
 #include "Components/ActorComponent.h"
 #include "music_player/music_player.h"
 #include "soundVisualizationMgr/ISoundVisualizationMgr.h"

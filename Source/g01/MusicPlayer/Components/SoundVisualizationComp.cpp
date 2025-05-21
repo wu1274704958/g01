@@ -2,7 +2,7 @@
 
 
 #include "MusicPlayer/Components/SoundVisualizationComp.h"
-#include "SoundVisualizationMgrActor.h"
+#include "../Actor/SoundVisualizationMgrActor.h"
 
 // Sets default values for this component's properties
 USoundVisualizationComp::USoundVisualizationComp(): m_soundVisualizationMgr(nullptr), AutoRegister(false)

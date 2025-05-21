@@ -2,7 +2,7 @@
 
 
 #include "SoundVisualizationMgrActor.h"
-#include "SoundVisualizationComp.h"
+#include "../Components/SoundVisualizationComp.h"
 
 
 // Sets default values
