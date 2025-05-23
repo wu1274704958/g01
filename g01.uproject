@@ -19,6 +19,14 @@
 			"PlatformAllowList": [
 				"Win64"
 			]
+		},
+		{
+			"Name": "TestMass",
+			"Type": "Developer",
+			"LoadingPhase": "Default",
+            "AdditionalDependencies": [
+                "Engine"
+            ]
 		}
 	],
 	"Plugins": [
@@ -28,6 +36,22 @@
 			"TargetAllowList": [
 				"Editor"
 			]
+		},
+		{
+			"Name": "MassGameplay",
+			"Enabled": true
+		},
+		{
+			"Name": "MassEntity",
+			"Enabled": true
+		},
+		{
+			"Name": "MassCrowd",
+			"Enabled": true
+		},
+		{
+			"Name": "MassAI",
+			"Enabled": true
 		}
 	]
 }

@@ -12,5 +12,11 @@ public class g01EditorTarget : TargetRules
 		IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_4;
 		ExtraModuleNames.Add("g01");
         ExtraModuleNames.Add("music_player");
+        RegisterModulesCreatedByRider();
+    }
+
+    private void RegisterModulesCreatedByRider()
+    {
+        ExtraModuleNames.AddRange(new string[] { "TestMass" });
     }
 }
