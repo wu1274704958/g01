@@ -3,23 +3,47 @@
 
 #include "RotationSpeedDataGenerator.h"
 
+#include "MassSpawnLocationProcessor.h"
 #include "RotationSpeedInitialProcessor.h"
 
 void URotationSpeedDataGenerator::OnSpawnDataGenerationFinished(
-    TArrayView<const FMassEntitySpawnDataGeneratorResult> Results,
+    TArrayView<FMassEntitySpawnDataGeneratorResult> Results,
     FFinishedGeneratingSpawnDataSignature OriginDelegate) const
 {
-    for (int32 i = 0; i < Results.Num(); i++)
+    for (FMassEntitySpawnDataGeneratorResult& Result : Results)
     {
-        const_cast<TArray<TSubclassOf<UMassProcessor>>*>(&Results[i].PostSpawnProcessors)->Push(URotationSpeedInitialProcessor::StaticClass());
+        Result.PostSpawnProcessors.Push(URotationSpeedInitialProcessor::StaticClass());
+
+        Result.SpawnDataProcessor = UMassSpawnLocationProcessor::StaticClass();
+        Result.SpawnData.InitializeAs<FMassTransformsSpawnData>();
+        FMassTransformsSpawnData& Transforms = Result.SpawnData.GetMutable<FMassTransformsSpawnData>();
+
+        Transforms.Transforms.Reserve(Result.NumEntities);
+        for (int i = 0; i < Result.NumEntities; i++)
+        {
+            FTransform& Transform = Transforms.Transforms.AddDefaulted_GetRef();
+            FVector Direction = FMath::VRand();
+            Transform.SetLocation(Direction * 1500 + FVector(0,0,1600)); 
+        }
     }
+    
     OriginDelegate.Execute(Results);
 }
 
 void URotationSpeedDataGenerator::Generate(UObject& QueryOwner, TConstArrayView<FMassSpawnedEntityType> EntityTypes,
                                            int32 Count, FFinishedGeneratingSpawnDataSignature& FinishedGeneratingSpawnPointsDelegate) const
 {
-    FFinishedGeneratingSpawnDataSignature Delegate = FFinishedGeneratingSpawnDataSignature::CreateUObject(this, &URotationSpeedDataGenerator::OnSpawnDataGenerationFinished,
+
+    if (Count <= 0)
+    {
+        FinishedGeneratingSpawnPointsDelegate.Execute(TArray<FMassEntitySpawnDataGeneratorResult>());
+        return;
+    }
+
+    TArray<FMassEntitySpawnDataGeneratorResult> Results;
+    BuildResultsFromEntityTypes(Count, EntityTypes, Results);
+    
+    FGeneratingSpawnDataSignature Delegate = FGeneratingSpawnDataSignature::CreateUObject(this, &URotationSpeedDataGenerator::OnSpawnDataGenerationFinished,
         FinishedGeneratingSpawnPointsDelegate);
-    UMassEntityEQSSpawnPointsGenerator::Generate(QueryOwner, EntityTypes, Count, Delegate);
+    Delegate.Execute(Results);
 }
