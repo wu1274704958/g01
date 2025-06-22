@@ -25,7 +25,8 @@ AT1PlayerController::AT1PlayerController(const FObjectInitializer& ObjectInitial
 {
 	TurnRateGamepad = 50.0f;
 	SteeringRate = 50.0f;
-	SteeringSpeedRate = 10.0f;
+    WalkSpeedRate = 0.6f;
+    RunSpeedRate = 0.8f;
 	PlayerCameraManagerClass = AT1PlayerCameraManager::StaticClass();
 	//SetupCamera();
 }
@@ -44,6 +45,7 @@ void AT1PlayerController::SetupInputComponent()
 		if(IA_Move)inputComp->BindAction(IA_Move.Get(),ETriggerEvent::Triggered,this,&AT1PlayerController::OnMoveTriggered);
 		if(IA_Look)inputComp->BindAction(IA_Look.Get(),ETriggerEvent::Triggered,this,&AT1PlayerController::OnLookTriggered);
 		if(IA_Jump)inputComp->BindAction(IA_Jump.Get(),ETriggerEvent::Triggered,this,&AT1PlayerController::OnJumpTriggered);
+	    if(IA_IsRunning)inputComp->BindAction(IA_IsRunning.Get(),ETriggerEvent::Triggered,this,&AT1PlayerController::OnIsRunningTrigged);
 	}
 }
 
@@ -73,7 +75,8 @@ void AT1PlayerController::OnMoveTriggered(const FInputActionValue& v)
 	
 	GetCharacter()->SetActorRotation(FMath::RInterpTo(GetCharacter()->GetActorRotation(),Rot,GetWorld()->GetDeltaSeconds(),SteeringRate));
 
-	GetCharacter()->AddMovementInput(Dir, Axis.Length() * FMath::Clamp(ActorDir.Dot(Dir),0,1) * SteeringSpeedRate);
+	GetCharacter()->AddMovementInput(Dir, InputDirection.Length() * FMath::Clamp(ActorDir.Dot(Dir),0,1) *
+	    IsRunning ? RunSpeedRate : WalkSpeedRate);
 }
 
 void AT1PlayerController::OnLookTriggered(const FInputActionValue& v)
@@ -82,6 +85,11 @@ void AT1PlayerController::OnLookTriggered(const FInputActionValue& v)
 	const auto delta =  GetWorld()->GetDeltaSeconds();
 	GetCharacter()->AddControllerYawInput(axis.X * TurnRateGamepad * delta);
 	GetCharacter()->AddControllerPitchInput(axis.Y * TurnRateGamepad * delta);
+}
+
+void AT1PlayerController::OnIsRunningTrigged(const FInputActionValue& v)
+{
+    IsRunning = !IsRunning;
 }
 
 void AT1PlayerController::MoveForward(float Value) const

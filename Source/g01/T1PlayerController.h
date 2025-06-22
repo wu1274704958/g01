@@ -43,6 +43,9 @@ private:
 	UPROPERTY(EditAnywhere, Category="Input")
 	TSoftObjectPtr<UInputAction> IA_Jump;
 
+    UPROPERTY(EditAnywhere, Category="Input")
+    TSoftObjectPtr<UInputAction> IA_IsRunning;
+
 	UPROPERTY(EditAnywhere, Category="Input")
 	float TurnRateGamepad;
 
@@ -51,10 +54,15 @@ private:
 
 	UPROPERTY(EditAnywhere,Category="Steering")
 	float SteeringRate;
-	
-	UPROPERTY(EditAnywhere,Category="Steering")
-	float SteeringSpeedRate;
 
+    UPROPERTY(EditAnywhere,Category="Speed")
+    float WalkSpeedRate;
+    
+    UPROPERTY(EditAnywhere,Category="Speed")
+    float RunSpeedRate;
+
+    bool IsRunning = false;
+    
 	FVector2d InputDirection;
 	/** Called for forwards/backward input */
 	void MoveForward(float Value) const;
@@ -65,4 +73,5 @@ private:
 	void OnMoveTriggered(const FInputActionValue&);
 	void OnLookTriggered(const FInputActionValue&);
 	void OnJumpTriggered(const FInputActionValue&);
+    void OnIsRunningTrigged(const FInputActionValue& v);
 };
