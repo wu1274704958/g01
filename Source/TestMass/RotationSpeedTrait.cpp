@@ -3,10 +3,12 @@
 
 #include "RotationSpeedTrait.h"
 
+#include "GroupIdFragment.h"
 #include "MassEntityTemplateRegistry.h"
-#include "RotationSpeed.h"
+#include "RotationSpeedFragment.h"
 
 void URotationSpeedTrait::BuildTemplate(FMassEntityTemplateBuildContext& BuildContext, const UWorld& World) const
 {
-    BuildContext.AddFragment<FRotationSpeed>();	
+    BuildContext.AddFragment<FRotationSpeedFragment>();
+    BuildContext.AddFragment<FUnitGrouped>();
 }

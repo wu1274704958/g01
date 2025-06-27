@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "MassEntityTypes.h"
-#include "RotationSpeed.generated.h"
+#include "RotationSpeedFragment.generated.h"
 
 /**
  * Represents the rotational speed of an entity within the mass framework.
@@ -12,10 +12,10 @@
  * The rotational speed is represented as a vector, indicating the speed along each axis.
  */
 USTRUCT()
-struct TESTMASS_API FRotationSpeed : public FMassFragment
+struct TESTMASS_API FRotationSpeedFragment : public FMassFragment
 {
     GENERATED_BODY()
     FVector Speed;
+    bool Active = true;
 };
-
 

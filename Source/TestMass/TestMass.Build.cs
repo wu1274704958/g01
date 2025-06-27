@@ -23,7 +23,8 @@ public class TestMass : ModuleRules
                 "MassCommon",
                 "MassEntity",
                 "MassSpawner",
-                "StructUtils",
+                "StructUtils", 
+                "MassGameplayDebug",
                 //"MassGameplayDebug",
                 //"MassGameplayEditor"
             }

@@ -5,7 +5,7 @@
 
 #include "MassCommonTypes.h"
 #include "MassExecutionContext.h"
-#include "RotationSpeed.h"
+#include "RotationSpeedFragment.h"
 
 URotationSpeedInitialProcessor::URotationSpeedInitialProcessor()
 {
@@ -14,7 +14,7 @@ URotationSpeedInitialProcessor::URotationSpeedInitialProcessor()
 
 void URotationSpeedInitialProcessor::ConfigureQueries()
 {
-    EntityQuery.AddRequirement<FRotationSpeed>(EMassFragmentAccess::ReadWrite); // 旋转速度
+    EntityQuery.AddRequirement<FRotationSpeedFragment>(EMassFragmentAccess::ReadWrite); // 旋转速度
     EntityQuery.RegisterWithProcessor(*this);
 }
 
@@ -23,11 +23,11 @@ void URotationSpeedInitialProcessor::Execute(FMassEntityManager& EntityManager, 
     EntityQuery.ForEachEntityChunk(EntityManager, Context, [](FMassExecutionContext& Context) {
         const int32 NumEntities = Context.GetNumEntities();
 
-        TArrayView<FRotationSpeed> RotationSpeeds = Context.GetMutableFragmentView<FRotationSpeed>();
+        TArrayView<FRotationSpeedFragment> RotationSpeeds = Context.GetMutableFragmentView<FRotationSpeedFragment>();
         
         for (int32 i = 0; i < NumEntities; ++i)
         {
-            RotationSpeeds[i].Speed = FMath::VRand();
+            RotationSpeeds[i].Speed = FVector( FMath::RandRange(0.f,360.0f),FMath::RandRange(0.f,360.0f),FMath::RandRange(0.f,360.0f));
         }
     });
 

@@ -30,6 +30,7 @@ public:
     // Called every frame
     virtual void Tick(float DeltaTime) override;
     bool RegisterSoundVisualizationComp(eqd_mp::EFFTDataType type,class USoundVisualizationComp& soundVisualizationComponent) const;
+    std::shared_ptr<SoundVisualizationMgr> GetInner() const;
 protected:
     void InitVisualizationMgr();
     void UninitVisualizationMgr();

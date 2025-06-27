@@ -68,3 +68,8 @@ bool ASoundVisualizationMgrActor::RegisterSoundVisualizationComp(eqd_mp::EFFTDat
     return m_soundVisualizationMgr->registeListener(type,soundVisualizationComponent);
 }
 
+std::shared_ptr<SoundVisualizationMgr> ASoundVisualizationMgrActor::GetInner() const
+{
+    return m_soundVisualizationMgr;
+}
+

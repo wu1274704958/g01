@@ -29,6 +29,7 @@ namespace eqd_mp
         std::unordered_map<EFFTDataType, std::vector<SoundVisualizationListener*>> _listeners;
         std::unordered_map<SoundVisualizationListener*,EFFTDataType> _listenerTypes;
         std::vector<float> _buf;
+        std::mutex _isLocked;
     };
 }
 

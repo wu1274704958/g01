@@ -5,6 +5,8 @@
 
 #include "MassSpawnLocationProcessor.h"
 #include "RotationSpeedInitialProcessor.h"
+#include "CommonDefs.h"
+#include "GroupingProcessor.h"
 
 void URotationSpeedDataGenerator::OnSpawnDataGenerationFinished(
     TArrayView<FMassEntitySpawnDataGeneratorResult> Results,
@@ -13,6 +15,7 @@ void URotationSpeedDataGenerator::OnSpawnDataGenerationFinished(
     for (FMassEntitySpawnDataGeneratorResult& Result : Results)
     {
         Result.PostSpawnProcessors.Push(URotationSpeedInitialProcessor::StaticClass());
+        Result.PostSpawnProcessors.Push(UGroupingProcessor::StaticClass());
 
         Result.SpawnDataProcessor = UMassSpawnLocationProcessor::StaticClass();
         Result.SpawnData.InitializeAs<FMassTransformsSpawnData>();
@@ -23,7 +26,7 @@ void URotationSpeedDataGenerator::OnSpawnDataGenerationFinished(
         {
             FTransform& Transform = Transforms.Transforms.AddDefaulted_GetRef();
             FVector Direction = FMath::VRand();
-            Transform.SetLocation(Direction * 1500 + FVector(0,0,1600)); 
+            Transform.SetLocation(Direction * UnitRadius + FVector(0,0,UnitYOffset));
         }
     }
     

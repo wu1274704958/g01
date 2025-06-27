@@ -8,6 +8,7 @@ namespace eqd_mp
     DSM_TEMPLATE_HEADER
     bool DefSoundVisualizationMgr<MP>::registeListener(EFFTDataType type,SoundVisualizationListener& listener)
     {
+        std::lock_guard guard(_isLocked);
         if (_listenerTypes.contains(&listener))
             return false;
         if (!_listeners.contains(type))
@@ -21,6 +22,7 @@ namespace eqd_mp
     DSM_TEMPLATE_HEADER
     bool DefSoundVisualizationMgr<MP>::unregisteListener(SoundVisualizationListener& listener)
     {
+        std::lock_guard guard(_isLocked);
         if (!_listenerTypes.contains(&listener))
             return false;
         auto type = _listenerTypes[&listener];
@@ -47,6 +49,7 @@ namespace eqd_mp
     DSM_TEMPLATE_HEADER
     void DefSoundVisualizationMgr<MP>::unregisteAllListener()
     {
+        std::lock_guard guard(_isLocked);
         for (auto it = _listeners.begin(); it != _listeners.end(); ++it)
         {
             for (auto& sv : it->second)
