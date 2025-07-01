@@ -106,7 +106,7 @@ void USoundVisualProcessor::UpdateUnit(uint32_t ID, FTransform& Transform,FVecto
     FVector Origin(0,0,UnitYOffset);
 
     auto Dir = (Pos - Origin).GetSafeNormal();
-    Dir.Z = 0;
+    //Dir.Z = 0;
 
     auto NewPos = Pos + Dir * sqrtf(Value) * 3000.0;
 

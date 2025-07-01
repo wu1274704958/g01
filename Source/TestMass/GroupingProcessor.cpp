@@ -47,13 +47,15 @@ void UGroupingProcessor::Execute(FMassEntityManager& EntityManager, FMassExecuti
 
 uint32_t UGroupingProcessor::GetGroupIdByTransform(const FTransform& Transform) const
 {
-    const auto& pos = Transform.GetLocation();
-    auto y = pos.Z - UnitYOffset;
-    auto id =  FMath::FloorToInt32(FMath::Abs(y) / UnitSpace);
-   
-    if (id < 0 || id >= UnitGroupCount)
-        id = 0;
-    return id;
+    return FMath::RandRange(0,UnitGroupCount - 1);
+    
+    // const auto& pos = Transform.GetLocation();
+    // auto y = pos.Z - UnitYOffset;
+    // auto id =  FMath::FloorToInt32(FMath::Abs(y) / UnitSpace);
+    //
+    // if (id < 0 || id >= UnitGroupCount)
+    //     id = 0;
+    // return id;
 }
 
 
