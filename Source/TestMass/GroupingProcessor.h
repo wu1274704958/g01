@@ -18,7 +18,7 @@ class TESTMASS_API UGroupingProcessor : public UMassProcessor
     UGroupingProcessor();
 
 protected:
-    virtual void ConfigureQueries() override;
+    virtual void ConfigureQueries(const TSharedRef<FMassEntityManager>&) override;
     virtual void Execute(FMassEntityManager& EntityManager, FMassExecutionContext& Context) override;
     uint32_t GetGroupIdByTransform(const FTransform& Transform) const;
 

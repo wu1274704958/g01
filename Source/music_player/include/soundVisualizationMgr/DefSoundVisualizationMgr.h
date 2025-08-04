@@ -4,6 +4,7 @@
 #include "api_def.h"
 #include "ISoundVisualizationMgr.h"
 #include "musicPlayer/IMusicPlayer.h"
+#include <mutex>
 
 namespace eqd_mp
 {

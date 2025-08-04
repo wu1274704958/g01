@@ -12,14 +12,14 @@
 
 struct FTransformFragment;
 
-UGroupingProcessor::UGroupingProcessor()
+UGroupingProcessor::UGroupingProcessor() : EntityQuery(*this)
 {
     bAutoRegisterWithProcessingPhases = false;
     //ExecutionFlags = static_cast<int32>(EProcessorExecutionFlags::All);
     //ExecutionOrder.ExecuteBefore.Add(UE::Mass::ProcessorGroupNames::Avoidance);
 }
 
-void UGroupingProcessor::ConfigureQueries()
+void UGroupingProcessor::ConfigureQueries(const TSharedRef<FMassEntityManager>&)
 {
     EntityQuery.AddRequirement<FTransformFragment>(EMassFragmentAccess::ReadOnly);
     EntityQuery.AddRequirement<FUnitGrouped>(EMassFragmentAccess::ReadWrite);

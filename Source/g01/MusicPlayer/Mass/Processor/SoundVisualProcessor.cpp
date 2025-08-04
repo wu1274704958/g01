@@ -30,14 +30,14 @@ void USoundVisualProcessor::onVisualizationData(const std::span<float>& data)
     UpdatingFFTData.store(false,std::memory_order_release);
 }
 
-USoundVisualProcessor::USoundVisualProcessor()
+USoundVisualProcessor::USoundVisualProcessor() : EntityQuery(*this)
 {
     bAutoRegisterWithProcessingPhases = true;
     ExecutionFlags = static_cast<int32>(EProcessorExecutionFlags::All);
     ExecutionOrder.ExecuteBefore.Add(UE::Mass::ProcessorGroupNames::Avoidance);
 }
 
-void USoundVisualProcessor::ConfigureQueries()
+void USoundVisualProcessor::ConfigureQueries(const TSharedRef<FMassEntityManager>&)
 {
     
     EntityQuery.AddRequirement<FTransformFragment>(EMassFragmentAccess::ReadWrite);

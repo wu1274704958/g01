@@ -8,14 +8,14 @@
 #include "MassExecutionContext.h"
 #include "RotationSpeedFragment.h"
 
-URotationProcessor::URotationProcessor()
+URotationProcessor::URotationProcessor() : EntityQuery(*this)
 {
     bAutoRegisterWithProcessingPhases = true;
     ExecutionFlags = static_cast<int32>(EProcessorExecutionFlags::All);
     ExecutionOrder.ExecuteBefore.Add(UE::Mass::ProcessorGroupNames::Avoidance);
 }
 
-void URotationProcessor::ConfigureQueries()
+void URotationProcessor::ConfigureQueries(const TSharedRef<FMassEntityManager>&)
 {
     EntityQuery.AddRequirement<FTransformFragment>(EMassFragmentAccess::ReadWrite); // 位置
     EntityQuery.AddRequirement<FRotationSpeedFragment>(EMassFragmentAccess::ReadWrite); // 旋转速度

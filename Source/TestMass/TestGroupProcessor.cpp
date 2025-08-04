@@ -8,14 +8,14 @@
 #include "MassGameplayDebugTypes.h"
 #include "RotationSpeedFragment.h"
 
-UTestGroupProcessor::UTestGroupProcessor()
+UTestGroupProcessor::UTestGroupProcessor() : EntityQuery(*this)
 {
     bAutoRegisterWithProcessingPhases = RunTestGroup;
     ExecutionFlags = static_cast<int32>(EProcessorExecutionFlags::All);
     ExecutionOrder.ExecuteBefore.Add(UE::Mass::ProcessorGroupNames::Avoidance);
 }
 
-void UTestGroupProcessor::ConfigureQueries()
+void UTestGroupProcessor::ConfigureQueries(const TSharedRef<FMassEntityManager>&)
 {
     EntityQuery.AddRequirement<FRotationSpeedFragment>(EMassFragmentAccess::ReadWrite);
     EntityQuery.AddRequirement<FUnitGrouped>(EMassFragmentAccess::ReadWrite);

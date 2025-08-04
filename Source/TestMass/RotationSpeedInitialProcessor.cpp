@@ -7,12 +7,12 @@
 #include "MassExecutionContext.h"
 #include "RotationSpeedFragment.h"
 
-URotationSpeedInitialProcessor::URotationSpeedInitialProcessor()
+URotationSpeedInitialProcessor::URotationSpeedInitialProcessor() : EntityQuery(*this)
 {
     bAutoRegisterWithProcessingPhases = false;
 }
 
-void URotationSpeedInitialProcessor::ConfigureQueries()
+void URotationSpeedInitialProcessor::ConfigureQueries(const TSharedRef<FMassEntityManager>&)
 {
     EntityQuery.AddRequirement<FRotationSpeedFragment>(EMassFragmentAccess::ReadWrite); // 旋转速度
     EntityQuery.RegisterWithProcessor(*this);

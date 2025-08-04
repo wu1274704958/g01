@@ -24,7 +24,7 @@ public:
     USoundVisualProcessor();
 
 protected:
-    virtual void ConfigureQueries() override;
+    virtual void ConfigureQueries(const TSharedRef<FMassEntityManager>&) override;
     void RegisterSelf();
     virtual void Execute(FMassEntityManager& EntityManager, FMassExecutionContext& Context) override;
     void UpdateUnit(uint32_t Uint32,FTransform& Transform,FVector Pos);

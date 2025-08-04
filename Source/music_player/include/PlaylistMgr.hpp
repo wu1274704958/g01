@@ -123,7 +123,8 @@ namespace eqd_mp
                 return {};
             }else
             {
-                if (typename std::tuple_element_t<I,PLS_TUPLE>::Mode == mode)
+                using PAIR_TYPE = typename std::tuple_element_t<I,PLS_TUPLE>;
+                if (PAIR_TYPE::Mode == mode)
                     return generatePlaylistByModeInside<typename std::tuple_element_t<I,PLS_TUPLE>::Type>(std::forward<Args>(args)...);
                 else
                     return generatePlaylistByModeInside<I + 1>(mode,std::forward<Args>(args)...);

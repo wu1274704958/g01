@@ -16,7 +16,7 @@ class TESTMASS_API URotationSpeedInitialProcessor : public UMassProcessor
     URotationSpeedInitialProcessor();
 
 protected:
-    virtual void ConfigureQueries() override;
+    virtual void ConfigureQueries(const TSharedRef<FMassEntityManager>&) override;
     virtual void Execute(FMassEntityManager& EntityManager, FMassExecutionContext& Context) override;
 protected:
     FMassEntityQuery EntityQuery;
