@@ -1,0 +1,4 @@
+[submodule "Source/music_player/dep/mt"]
+	path = Source/music_player/dep/mt
+	url = git@github.com:wu1274704958/mini-test.git
+	branch = head_only
