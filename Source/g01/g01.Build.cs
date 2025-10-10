@@ -14,8 +14,9 @@ public class g01 : ModuleRules
 
         PrivateDependencyModuleNames.AddRange(new string[]
         {
-            "music_player","TestMass" ,
-            
+            "music_player",
+            "TestMass",
+            "MqasNet",
             "MassCommon",
             "MassEntity",
             "MassSpawner",
