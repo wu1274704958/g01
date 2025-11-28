@@ -14,5 +14,6 @@ public class g01EditorTarget : TargetRules
         ExtraModuleNames.Add("music_player");
         ExtraModuleNames.Add("MqasNet");
         ExtraModuleNames.Add("TestMass");
-    }
+        ExtraModuleNames.Add("EUtility");
+	}
 }

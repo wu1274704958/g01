@@ -10,13 +10,12 @@ public class g01 : ModuleRules
 
         PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput" });
 
-        PrivateDependencyModuleNames.AddRange(new string[] { "MassEntity", "MassEntity" });
-
         PrivateDependencyModuleNames.AddRange(new string[]
         {
             "music_player",
             "TestMass",
             "MqasNet",
+            "EUtility",
             "MassCommon",
             "MassEntity",
             "MassSpawner",
