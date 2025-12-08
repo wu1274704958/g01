@@ -8,7 +8,9 @@
 #include "UFilePreprocessor.h"
 #include "MqasNet/example1/example1.h"
 
-UMqasNetAgent* UMqasNetAgent::instance = nullptr;
+DEFINE_LOG_CATEGORY(LogMqasNet)
+
+AUMqasNetAgent* AUMqasNetAgent::instance = nullptr;
 
 inline void preprocess(const FString& file)
 {
@@ -17,15 +19,7 @@ inline void preprocess(const FString& file)
 	UFilePreprocessor::PreprocessFile(path,false,out_path);
 }
 
-void UMqasNetAgent::PostInitProperties()
-{
-	UObject::PostInitProperties();
-	preprocess(TEXT("NetConfig/hole_punching_config.txt"));
-	
-	bInitialized = GSY_initialize(0, OnErrorCallback) == EC_Ok;
-}
-
-bool UMqasNetAgent::ConnectToHolePunchingServer(const FString& name, const FString& psd)
+bool AUMqasNetAgent::ConnectToHolePunchingServer(const FString& name, const FString& psd)
 {
 	if (!bInitialized || SelfId > 0)
 		return false;
@@ -41,32 +35,58 @@ bool UMqasNetAgent::ConnectToHolePunchingServer(const FString& name, const FStri
 	return SelfId > 0;
 }
 
-void UMqasNetAgent::OnConnectedCallback(int code, unsigned int peer_id)
+bool AUMqasNetAgent::DisconnectToHolePunchingServer()
 {
-	UE_LOG(LogTemp, Warning, TEXT("UMqasNetAgent::OnConnectedCallback: code = %d,peer_id = %d"), code,peer_id);
+	if (!bInitialized || SelfId == 0)
+		return false;
+	const auto ret = GSY_disconnect_hole_punching_server(SelfId);
+	SelfId = 0;
+	return ret == EC_Ok;
 }
 
-void UMqasNetAgent::OnRequestCallback(struct PeerData* peer_data)
+void AUMqasNetAgent::OnConnectedCallback(int code, unsigned int peer_id)
+{
+	UE_LOG(LogMqasNet, Warning, TEXT("UMqasNetAgent::OnConnectedCallback: code = %d,peer_id = %d"), code,peer_id);
+}
+
+void AUMqasNetAgent::OnRequestCallback(struct PeerData* peer_data)
 {
 	const auto& Name = StringCast<WIDECHAR>(peer_data->name);
-	UE_LOG(LogTemp, Warning, TEXT("UMqasNetAgent::OnRequestCallback: peer id = %d,name = %s"), peer_data->id,Name.Get());
+	UE_LOG(LogMqasNet, Warning, TEXT("UMqasNetAgent::OnRequestCallback: peer id = %d,name = %s"), peer_data->id,Name.Get());
 }
 
-void UMqasNetAgent::OnErrorCallback(const char* msg, int code)
+void AUMqasNetAgent::OnErrorCallback(const char* msg, int code)
 {
-	UE_LOG(LogTemp, Warning, TEXT("UMqasNetAgent::OnErrorCallback: %hs,code = %d"), msg,code);
+	UE_LOG(LogMqasNet, Warning, TEXT("UMqasNetAgent::OnErrorCallback: %hs,code = %d"), msg,code);
 }
 
-UMqasNetAgent::UMqasNetAgent()
+AUMqasNetAgent::AUMqasNetAgent()
 {
+	
+}
+
+void AUMqasNetAgent::BeginPlay()
+{
+	if (instance != nullptr && instance != this)
+	{
+		//error
+		UE_LOG(LogTemp, Error, TEXT("MqasNetAgent instance already exists!"));
+		return;
+	}
 	instance = this;
+	preprocess(TEXT("NetConfig/hole_punching_config.txt"));
+	bInitialized = GSY_initialize(0, OnErrorCallback) == EC_Ok;
+	UE_LOG(LogMqasNet, Verbose , TEXT("UMqasNetAgent initialization status = %s"), bInitialized ? TEXT("true") : TEXT("false"));
+	Super::BeginPlay();
 }
 
-void UMqasNetAgent::BeginDestroy()
+void AUMqasNetAgent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	UObject::BeginDestroy();
+	Super::EndPlay(EndPlayReason);
 	if (bInitialized && (GSY_terminate() == EC_Ok))
 	{
 		bInitialized = false;
 	}
+	if (instance == this)
+		instance = nullptr;
 }
