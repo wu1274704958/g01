@@ -10,6 +10,8 @@
 
 DEFINE_LOG_CATEGORY(LogMqasNet)
 
+
+
 AUMqasNetAgent* AUMqasNetAgent::instance = nullptr;
 
 inline void preprocess(const FString& file)
@@ -29,7 +31,7 @@ bool AUMqasNetAgent::ConnectToHolePunchingServer(const FString& name, const FStr
 	const auto& Name = StringCast<ANSICHAR>(*name);
 	const auto& Psd = StringCast<ANSICHAR>(*psd);
 	
-	const auto id = GSY_connect_hole_punching_server(Path.Get(),Name.Get(),Psd.Get(),OnConnectedCallback,OnRequestCallback);
+	const auto id = GSY_connect_hole_punching_server(Path.Get(),Name.Get(),Psd.Get(),OnConnectedCallbackGlobal,OnRequestCallbackGlobal);
 	if (id > 0 && id < EC_ErrorBegin)
 		SelfId = id;
 	return SelfId > 0;
@@ -46,17 +48,39 @@ bool AUMqasNetAgent::DisconnectToHolePunchingServer()
 
 void AUMqasNetAgent::OnConnectedCallback(int code, unsigned int peer_id)
 {
+	OnConnected.Broadcast(code, peer_id);
+}
+
+void AUMqasNetAgent::OnRequestCallback(const FString& name, unsigned int id)
+{
+	OnRequest.Broadcast(name,id);
+}
+
+void AUMqasNetAgent::OnErrorCallback(const FString& msg, int code)
+{
+	OnError.Broadcast(msg,code);
+}
+
+void AUMqasNetAgent::OnConnectedCallbackGlobal(int code, unsigned int peer_id)
+{
+	if (instance != nullptr)
+		instance->OnConnectedCallback(code, peer_id);
 	UE_LOG(LogMqasNet, Warning, TEXT("UMqasNetAgent::OnConnectedCallback: code = %d,peer_id = %d"), code,peer_id);
 }
 
-void AUMqasNetAgent::OnRequestCallback(struct PeerData* peer_data)
+void AUMqasNetAgent::OnRequestCallbackGlobal(struct PeerData* peer_data)
 {
 	const auto& Name = StringCast<WIDECHAR>(peer_data->name);
+	if (instance != nullptr)
+		instance->OnRequestCallback(Name.Get(), peer_data->id);
 	UE_LOG(LogMqasNet, Warning, TEXT("UMqasNetAgent::OnRequestCallback: peer id = %d,name = %s"), peer_data->id,Name.Get());
 }
 
-void AUMqasNetAgent::OnErrorCallback(const char* msg, int code)
+void AUMqasNetAgent::OnErrorCallbackGlobal(const char* msg, int code)
 {
+	const auto& Name = StringCast<WIDECHAR>(msg);
+	if (instance != nullptr)
+		instance->OnErrorCallback(Name.Get(), code);
 	UE_LOG(LogMqasNet, Warning, TEXT("UMqasNetAgent::OnErrorCallback: %hs,code = %d"), msg,code);
 }
 
@@ -75,7 +99,7 @@ void AUMqasNetAgent::BeginPlay()
 	}
 	instance = this;
 	preprocess(TEXT("NetConfig/hole_punching_config.txt"));
-	bInitialized = GSY_initialize(0, OnErrorCallback) == EC_Ok;
+	bInitialized = GSY_initialize(0, OnErrorCallbackGlobal) == EC_Ok;
 	UE_LOG(LogMqasNet, Verbose , TEXT("UMqasNetAgent initialization status = %s"), bInitialized ? TEXT("true") : TEXT("false"));
 	Super::BeginPlay();
 }

@@ -8,6 +8,10 @@
 
 DECLARE_LOG_CATEGORY_EXTERN(LogMqasNet, Log, All);
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnConnectedDelegate,int,code,int,peer_id);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnRequestDelegate,const FString&,name,int,id);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnErrorDelegate,const FString&,msg,int,code);
+
 /**
  * 
  */
@@ -24,21 +28,33 @@ protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 public:
-
+	
 	UFUNCTION(BlueprintCallable,Category="MqasNetAgent")
 	bool ConnectToHolePunchingServer(const FString& name, const FString& psd);
 	UFUNCTION(BlueprintCallable,Category="MqasNetAgent")
 	bool DisconnectToHolePunchingServer();
 	UFUNCTION(BlueprintCallable,Category="MqasNetAgent")
 	bool IsInitialized() const { return bInitialized; }
-	unsigned int GetSelfId() const { return SelfId; }
-
+	UFUNCTION(BlueprintCallable,Category="MqasNetAgent")
+	int GetSelfId() const { return SelfId; }
+	UFUNCTION(BlueprintCallable,Category="MqasNetAgent")
+	bool IsConnectToHolePunchingServer() const { return SelfId != 0; }
+private:
+	void OnConnectedCallback(int code,unsigned int peer_id);
+	void OnRequestCallback(const FString& name,unsigned int id);
+	void OnErrorCallback(const FString& msg,int code);
 private:
 	static AUMqasNetAgent* instance;
-	static void OnConnectedCallback(int code,unsigned int peer_id);
-	static void OnRequestCallback(struct PeerData* peer_data);
-	static void OnErrorCallback(const char* msg,int code);
-
+	static void OnConnectedCallbackGlobal(int code,unsigned int peer_id);
+	static void OnRequestCallbackGlobal(struct PeerData* peer_data);
+	static void OnErrorCallbackGlobal(const char* msg,int code);
+public:
+	UPROPERTY(BlueprintAssignable,Category="MqasNetAgent")
+	FOnConnectedDelegate OnConnected;
+	UPROPERTY(BlueprintAssignable,Category="MqasNetAgent")
+	FOnRequestDelegate OnRequest;
+	UPROPERTY(BlueprintAssignable,Category="MqasNetAgent")
+	FOnErrorDelegate OnError;
 private:
 	bool bInitialized = false;
 	unsigned int SelfId = 0;
