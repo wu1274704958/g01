@@ -4,8 +4,8 @@
 
 #ifndef GSYNC_EXAMPLE1_H
 #define GSYNC_EXAMPLE1_H
-
 #include "macro.h"
+
 #if __cplusplus
 extern "C" {
 #endif
@@ -19,24 +19,39 @@ extern "C" {
         EC_InvalidAddress,
         EC_Disconnected,
         EC_InvalidHandler,
-    };
-
-    struct PeerData {
-        unsigned int id = 1;
-        const char* name;
+        EC_ConnectFailed,
+        EC_ConnectOverLimit,
+        EC_EngineNotMatch
     };
 
     typedef void(*SICallback)(const char*,int);
     typedef void(*ICallback)(int);
     typedef void(*IUICallback)(int,unsigned int);
-    typedef void(*PDCallback)(struct PeerData*);
 
-    int GSYNC_EXTERN GSY_initialize(int flag,SICallback error_callback);
+    typedef unsigned int GSY_ConnectionHwnd;
+    typedef unsigned int GSY_EngineId;
+
+    inline GSY_ConnectionHwnd InvalidConnection = 0;
+
+    struct GSYNC_EXTERN GSY_Context {
+        SICallback on_error;
+    };
+
+    struct GSYNC_EXTERN GSY_BaseConnectionContext {
+        IUICallback on_connect;
+        IUICallback on_disconnect;
+        IUICallback on_error;
+        void* extend;
+    };
+
+    int GSYNC_EXTERN GSY_initialize(int flag,GSY_Context* cxt);
     int GSYNC_EXTERN GSY_terminate();
 
-    unsigned int GSYNC_EXTERN GSY_connect_hole_punching_server(const char* config_file,const char* name,const char* psd,IUICallback callback,PDCallback req_connect_cb);
-    int GSYNC_EXTERN GSY_disconnect_hole_punching_server(unsigned int handler);
-    int GSYNC_EXTERN GSY_is_connected_hole_punching_server(unsigned int handler);
+    GSY_ConnectionHwnd GSYNC_EXTERN GSY_connect(GSY_EngineId engine_id,const char* config_file,
+        const char* ip,short port,GSY_BaseConnectionContext* cxt);
+    int GSYNC_EXTERN GSY_disconnect(GSY_ConnectionHwnd handler);
+    int GSYNC_EXTERN GSY_is_connected(GSY_ConnectionHwnd handler);
+
 #if __cplusplus
 }
 #endif

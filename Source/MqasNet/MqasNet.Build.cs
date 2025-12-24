@@ -18,7 +18,8 @@ public class MqasNet : ModuleRules
         PrivateDependencyModuleNames.AddRange(
             [
                 "CoreUObject",
-                "Engine"
+                "Engine",
+                "EUtility"
             ]
         );
         
