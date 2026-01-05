@@ -34,6 +34,7 @@ public: //public methods
 	const FString& GetIp() const { return _Ip; }
 	short GetPort() const { return _Port; }
 	bool IsConnected() const { return bIsConnected; }
+	void Disconnect();
 	
 public:	//signal
 	FOnConnectErrorDelegate OnConnectErrorDelegate;

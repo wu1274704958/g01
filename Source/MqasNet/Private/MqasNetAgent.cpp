@@ -19,15 +19,16 @@ bool AUMqasNetAgent::IsConnected(GSY_ConnectionHwnd hwnd)
 	return GSY_is_connected(hwnd) != 0;
 }
 
-std::shared_ptr<BaseConnect> AUMqasNetAgent::ConnectTo(GSY_EngineId EngineId, const FString& ConfigFile,
+std::weak_ptr<BaseConnect> AUMqasNetAgent::ConnectTo(GSY_EngineId EngineId, const FString& ConfigFile,
 	const FString& Ip, short Port)
 {
-	const auto hwnd = GSY_connect(EngineId, TCHAR_TO_UTF8(*ConfigFile), TCHAR_TO_UTF8(*Ip), Port, &ConnectionContext);
+	const FString RealConfigPath = FPaths::ProjectSavedDir() / ConfigFile;
+	const auto hwnd = GSY_connect(EngineId, TCHAR_TO_UTF8(*RealConfigPath), TCHAR_TO_UTF8(*Ip), Port, &ConnectionContext);
 	if (hwnd == InvalidConnection)
 	{
 		UE_LOG(LogMqasNet, Warning, TEXT("ConnectTo failed: EngineId=%d, ConfigFile=%s, Ip=%s, Port=%d"),
 			(int)EngineId, *ConfigFile, *Ip, Port);
-		return nullptr;
+		return {};
 	}
 	auto conn = std::make_shared<BaseConnect>();
 	conn->InitData(hwnd,EngineId,std::move(ConfigFile),std::move(Ip), Port);
@@ -86,21 +87,54 @@ void AUMqasNetAgent::OnErrorCallbackGlobal(const char* msg, int code)
 void AUMqasNetAgent::OnConnectCallbackGlobal(int code, GSY_ConnectionHwnd hwnd)
 {
 	if (instance != nullptr)
-		instance->OnConnectCallback(code, hwnd);
+	{
+		if (IsInGameThread())
+			instance->OnConnectCallback(code, hwnd);
+		else
+		{
+			AsyncTask(ENamedThreads::GameThread, [code,hwnd]()
+			{
+				if (instance)
+					instance->OnConnectCallback(code, hwnd);
+			});
+		}
+	}
 	UE_LOG(LogMqasNet, Verbose, TEXT("UMqasNetAgent::OnConnectCallback: handle = %u,code = %d"), hwnd,code);
 }
 
 void AUMqasNetAgent::OnDisconnectCallbackGlobal(int code, GSY_ConnectionHwnd hwnd)
 {
 	if (instance != nullptr)
-		instance->OnDisconnectCallback(code, hwnd);
+	{
+		if (IsInGameThread())
+			instance->OnDisconnectCallback(code, hwnd);
+		else
+		{
+			AsyncTask(ENamedThreads::GameThread, [code,hwnd]()
+			{
+				if (instance)
+					instance->OnDisconnectCallback(code, hwnd);
+			});
+		}
+	}
 	UE_LOG(LogMqasNet, Verbose, TEXT("UMqasNetAgent::OnDisconnectCallback: handle = %u,code = %d"), hwnd,code);
 }
 
 void AUMqasNetAgent::OnConnectErrorCallbackGlobal(int code, GSY_ConnectionHwnd hwnd)
 {
 	if (instance != nullptr)
-		instance->OnConnectErrorCallback(code, hwnd);
+	{
+		if (IsInGameThread())
+			instance->OnConnectErrorCallback(code, hwnd);
+		else
+		{
+			AsyncTask(ENamedThreads::GameThread, [code,hwnd]()
+			{
+				if (instance)
+					instance->OnConnectErrorCallback(code, hwnd);
+			});
+		}
+	}
 	UE_LOG(LogMqasNet, Warning, TEXT("UMqasNetAgent::OnConnectErrorCallback: handle = %u,code = %d"), hwnd,code);
 }
 

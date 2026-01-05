@@ -31,7 +31,7 @@ public:
 	UFUNCTION(BlueprintCallable,Category="MqasNetAgent")
 	bool IsInitialized() const { return bInitialized; }
 	bool IsConnected(GSY_ConnectionHwnd hwnd);
-	std::shared_ptr<BaseConnect> ConnectTo(GSY_EngineId EngineId,const FString& ConfigFile,
+	std::weak_ptr<BaseConnect> ConnectTo(GSY_EngineId EngineId,const FString& ConfigFile,
 		const FString& Ip,short Port);
 private:
 	void OnErrorCallback(const FString& msg,int code);

@@ -39,3 +39,14 @@ void BaseConnect::OnConnectError(int Code)
 	OnConnectErrorDelegate.Broadcast(Code, _Hwnd);
 }
 
+void BaseConnect::Disconnect()
+{
+	if (IsConnected())
+	{
+		if (GSY_disconnect(_Hwnd) == EC_Ok)
+		{
+			bIsConnected = false;
+		}
+	}
+}
+
