@@ -2,15 +2,17 @@
 
 
 #include "UIUtility.h"
+
+#include "IToast.h"
 #include "Log.h"
 #include "ScreenPass.h"
 
 #include "Blueprint/UserWidget.h"
 #include "Components/CanvasPanelSlot.h"
 
-int UUIUtility::CurrentToastZOrder = UUIUtility::ToastZOrder;
+int UIUtility::CurrentToastZOrder = UIUtility::ToastZOrder;
 
-void UUIUtility::ShowToast(UObject* obj,int PlayerIndex,const TSubclassOf<UUserWidget> Class, const FString& Message,
+void UIUtility::ShowToast(UObject* obj,int PlayerIndex,const TSubclassOf<UUserWidget> Class, const FString& Message,
                            float Duration, float XOffset, float YOffset)
 {
 	if (!Class->ImplementsInterface(UIToast::StaticClass()))
