@@ -4,6 +4,8 @@
 #include "UI/TestMqasNetWidget.h"
 #include <EUtility/UI/UIUtility.h>
 
+#include "P2PHelperStream.h"
+
 UTestMqasNetWidget::UTestMqasNetWidget(const FObjectInitializer& ObjectInitializer) : UUserWidget(ObjectInitializer)
 {
 	static ConstructorHelpers::FClassFinder<UUserWidget> DefaultToastClass(TEXT("/Game/UI/Toast/UW_ToastDef"));
@@ -92,6 +94,13 @@ void UTestMqasNetWidget::OnConnected(int code,GSY_ConnectionHwnd hwnd)
 {
 	_TbStatus->SetText(FText::FromString(FString::Printf(TEXT("Connected (Handle=%u)"), hwnd)));
 	_TbBtnConnect->SetText(FText::FromString(TEXT("Disconnect")));
+	
+	auto conn = _CurrentConnect.lock();
+	if (conn)
+	{
+		conn->MakeStream<P2PHelperStream,GSY_LobbyStreamContext,const char*,const char*>(GSY_RegisterToLobby,
+			TCHAR_TO_UTF8(*_EtName->GetText().ToString()),TCHAR_TO_UTF8(*_EtPsd->GetText().ToString()));
+	}
 }
 void UTestMqasNetWidget::OnDisconnected(int code,GSY_ConnectionHwnd hwnd)
 {

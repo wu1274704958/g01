@@ -38,12 +38,16 @@ private:
 	void OnConnectCallback(int code,GSY_ConnectionHwnd hwnd);
 	void OnDisconnectCallback(int code,GSY_ConnectionHwnd hwnd);
 	void OnConnectErrorCallback(int code,GSY_ConnectionHwnd hwnd);
+	void OnStreamOpenCallback(GSY_ConnectionHwnd,GSY_StreamId,ErrorCode);
+	void OnStreamCloseCallback(GSY_ConnectionHwnd,GSY_StreamId,ErrorCode);
 private:// static members
 	static AUMqasNetAgent* instance;
 	static void OnErrorCallbackGlobal(const char* msg,int code);
 	static void OnConnectCallbackGlobal(int code,GSY_ConnectionHwnd hwnd);
 	static void OnDisconnectCallbackGlobal(int code,GSY_ConnectionHwnd hwnd);
 	static void OnConnectErrorCallbackGlobal(int code,GSY_ConnectionHwnd hwnd);
+	static void OnStreamOpenCallbackGlobal(GSY_ConnectionHwnd,GSY_StreamId,ErrorCode);
+	static void OnStreamCloseCallbackGlobal(GSY_ConnectionHwnd,GSY_StreamId,ErrorCode);
 public:
 	FOnErrorDelegate OnError;
 	

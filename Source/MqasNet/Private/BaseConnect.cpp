@@ -39,6 +39,21 @@ void BaseConnect::OnConnectError(int Code)
 	OnConnectErrorDelegate.Broadcast(Code, _Hwnd);
 }
 
+void BaseConnect::OnStreamOpen(GSY_StreamId sid, ErrorCode Code)
+{
+	
+}
+
+void BaseConnect::OnStreamClose(GSY_StreamId sid, ErrorCode Code)
+{
+	if (_StreamMap.contains(sid))
+	{
+		auto& stream = _StreamMap[sid];
+		stream->OnClose();
+		_StreamMap.erase(sid);
+	}
+}
+
 void BaseConnect::Disconnect()
 {
 	if (IsConnected())

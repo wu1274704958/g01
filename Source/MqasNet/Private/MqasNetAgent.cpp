@@ -76,6 +76,19 @@ void AUMqasNetAgent::OnConnectErrorCallback(int code, GSY_ConnectionHwnd hwnd)
 	ConnectionMap.erase(hwnd);
 }
 
+void AUMqasNetAgent::OnStreamOpenCallback(GSY_ConnectionHwnd hwnd, GSY_StreamId sid, ErrorCode code)
+{
+	if (ConnectionMap.contains(hwnd))
+		ConnectionMap[hwnd]->OnStreamOpen(sid,code);
+}
+
+void AUMqasNetAgent::OnStreamCloseCallback(GSY_ConnectionHwnd hwnd, GSY_StreamId sid, ErrorCode code)
+{
+	if (ConnectionMap.contains(hwnd))
+		ConnectionMap[hwnd]->OnStreamClose(sid, code);
+}
+
+
 void AUMqasNetAgent::OnErrorCallbackGlobal(const char* msg, int code)
 {
 	const auto& Name = StringCast<WIDECHAR>(msg);
@@ -138,6 +151,42 @@ void AUMqasNetAgent::OnConnectErrorCallbackGlobal(int code, GSY_ConnectionHwnd h
 	UE_LOG(LogMqasNet, Warning, TEXT("UMqasNetAgent::OnConnectErrorCallback: handle = %u,code = %d"), hwnd,code);
 }
 
+void AUMqasNetAgent::OnStreamOpenCallbackGlobal(GSY_ConnectionHwnd hwnd, GSY_StreamId sid, ErrorCode code)
+{
+	if (instance != nullptr)
+	{
+		if (IsInGameThread())
+			instance->OnStreamOpenCallback(hwnd, sid, code);
+		else
+		{
+			AsyncTask(ENamedThreads::GameThread, [hwnd,sid,code]()
+			{
+				if (instance)
+					instance->OnStreamOpenCallback(hwnd, sid, code);
+			});
+		}
+	}
+	UE_LOG(LogMqasNet, Verbose, TEXT("UMqasNetAgent::OnStreamOpenCallback: handle = %u,stream id = %u,code = %d"), hwnd,sid,code);
+}
+
+void AUMqasNetAgent::OnStreamCloseCallbackGlobal(GSY_ConnectionHwnd hwnd, GSY_StreamId sid, ErrorCode code)
+{
+	if (instance != nullptr)
+	{
+		if (IsInGameThread())
+			instance->OnStreamCloseCallback(hwnd, sid, code);
+		else
+		{
+			AsyncTask(ENamedThreads::GameThread, [hwnd,sid,code]()
+			{
+				if (instance)
+					instance->OnStreamCloseCallback(hwnd, sid, code);
+			});
+		}
+	}
+	UE_LOG(LogMqasNet, Verbose, TEXT("UMqasNetAgent::OnStreamCloseCallback: handle = %u,stream id = %u,code = %d"), hwnd,sid,code);
+}
+
 AUMqasNetAgent::AUMqasNetAgent()
 {
 	Context.on_error = OnErrorCallbackGlobal;
@@ -145,6 +194,8 @@ AUMqasNetAgent::AUMqasNetAgent()
 	ConnectionContext.on_error = OnConnectErrorCallbackGlobal;
 	ConnectionContext.on_connect = OnConnectCallbackGlobal;
 	ConnectionContext.on_disconnect = OnDisconnectCallbackGlobal;
+	ConnectionContext.on_stream_open = OnStreamOpenCallbackGlobal;
+	ConnectionContext.on_stream_close = OnStreamCloseCallbackGlobal;
 }
 
 void AUMqasNetAgent::BeginPlay()
