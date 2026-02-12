@@ -11,7 +11,7 @@
 #include "TestMqasNetWidget.generated.h"
 
 /**
- * 
+ * deprecated
  */
 UCLASS()
 class UTestMqasNetWidget : public UUserWidget
