@@ -6,6 +6,7 @@
 #include "TimerManager.h"
 #include "Engine/World.h"
 #include "GameFramework/PlayerController.h"
+#include "Transitions/SimpleFadeTransition.h"
 
 void UUIManager::Initialize(FSubsystemCollectionBase& Collection)
 {
@@ -209,16 +210,8 @@ void UUIManager::PerformShow(FUIViewInfo* ViewInfo, UObject* Model)
 	// 应用输入模式
 	ApplyInputMode(ViewInfo, true);
 
-	// 执行淡入动画
-	if (ViewInfo->Config.TransitionType == EUITransition::Fade)
-	{
-		ExecuteFadeIn(ViewInfo);
-	}
-	else
-	{
-		// 没有动画，直接完成
-		OnFadeInComplete(ViewInfo->ViewName);
-	}
+	// 执行过渡动画
+	ExecuteFadeIn(ViewInfo);
 }
 
 void UUIManager::PerformHide(FUIViewInfo* ViewInfo, bool bDestroy)
@@ -234,16 +227,8 @@ void UUIManager::PerformHide(FUIViewInfo* ViewInfo, bool bDestroy)
 		ViewInfo->Controller->OnViewWillDisappear();
 	}
 
-	// 执行淡出动画
-	if (ViewInfo->Config.TransitionType == EUITransition::Fade)
-	{
-		ExecuteFadeOut(ViewInfo, bDestroy);
-	}
-	else
-	{
-		// 没有动画，直接完成
-		OnFadeOutComplete(ViewInfo->ViewName, bDestroy);
-	}
+	// 执行过渡动画
+	ExecuteFadeOut(ViewInfo, bDestroy);
 }
 
 void UUIManager::HandleExclusiveMode(FUIViewInfo* ViewInfo)
@@ -286,19 +271,33 @@ void UUIManager::ExecuteFadeIn(FUIViewInfo* ViewInfo)
 		FadeInCallbacks[ViewInfo->ViewName]();
 	}
 
-	// 简单的淡入实现（从透明到不透明）
-	ViewInfo->Widget->SetRenderOpacity(0.0f);
-	
-	// 使用定时器模拟淡入效果
-	FTimerHandle TimerHandle;
+	// 使用 Transaction 类执行过渡动画
 	FName ViewName = ViewInfo->ViewName;
-	GetWorld()->GetTimerManager().SetTimer(TimerHandle, [this, ViewName]()
+	
+	if (ViewInfo->Config.ShowTransactionClass)
 	{
-		OnFadeInComplete(ViewName);
-	}, ViewInfo->Config.FadeInDuration, false);
-
-	// TODO: 这里可以使用UMG动画播放器或者自定义插值来实现更平滑的淡入效果
-	// 目前简化处理，在延迟后直接完成
+		UUITransaction* Transaction = NewObject<UUITransaction>(this, ViewInfo->Config.ShowTransactionClass);
+		if (Transaction)
+		{
+			Transaction->Execute(ViewInfo->Widget, ViewInfo->Config.FadeInDuration, [this, ViewName]()
+			{
+				OnFadeInComplete(ViewName);
+			});
+		}
+		else
+		{
+			OnFadeInComplete(ViewName);
+		}
+	}
+	else
+	{
+		// 默认使用淡入效果
+		UFadeInTransaction* Transaction = NewObject<UFadeInTransaction>(this);
+		Transaction->Execute(ViewInfo->Widget, ViewInfo->Config.FadeInDuration, [this, ViewName]()
+		{
+			OnFadeInComplete(ViewName);
+		});
+	}
 }
 
 void UUIManager::ExecuteFadeOut(FUIViewInfo* ViewInfo, bool bDestroy)
@@ -322,15 +321,33 @@ void UUIManager::ExecuteFadeOut(FUIViewInfo* ViewInfo, bool bDestroy)
 		FadeOutCallbacks[ViewInfo->ViewName]();
 	}
 
-	// 使用定时器模拟淡出效果
-	FTimerHandle TimerHandle;
+	// 使用 Transaction 类执行过渡动画
 	FName ViewName = ViewInfo->ViewName;
-	GetWorld()->GetTimerManager().SetTimer(TimerHandle, [this, ViewName, bDestroy]()
+	
+	if (ViewInfo->Config.HideTransactionClass)
 	{
-		OnFadeOutComplete(ViewName, bDestroy);
-	}, ViewInfo->Config.FadeOutDuration, false);
-
-	// TODO: 这里可以使用UMG动画播放器或者自定义插值来实现更平滑的淡出效果
+		UUITransaction* Transaction = NewObject<UUITransaction>(this, ViewInfo->Config.HideTransactionClass);
+		if (Transaction)
+		{
+			Transaction->Execute(ViewInfo->Widget, ViewInfo->Config.FadeOutDuration, [this, ViewName, bDestroy]()
+			{
+				OnFadeOutComplete(ViewName, bDestroy);
+			});
+		}
+		else
+		{
+			OnFadeOutComplete(ViewName, bDestroy);
+		}
+	}
+	else
+	{
+		// 默认使用淡出效果
+		UFadeOutTransaction* Transaction = NewObject<UFadeOutTransaction>(this);
+		Transaction->Execute(ViewInfo->Widget, ViewInfo->Config.FadeOutDuration, [this, ViewName, bDestroy]()
+		{
+			OnFadeOutComplete(ViewName, bDestroy);
+		});
+	}
 }
 
 void UUIManager::OnFadeInComplete(FName ViewName)
@@ -444,7 +461,8 @@ void UUIManager::ApplyInputMode(FUIViewInfo* ViewInfo, bool bShow)
 		if (ViewInfo->Config.bShowMouseCursor)
 		{
 			FInputModeUIOnly InputMode;
-			InputMode.SetWidgetToFocus(ViewInfo->Widget->TakeWidget());
+			if (auto swidget = ViewInfo->Widget->TakeWidget(); swidget->SupportsKeyboardFocus())
+				InputMode.SetWidgetToFocus(swidget);
 			PC->SetInputMode(InputMode);
 			PC->bShowMouseCursor = true;
 		}
@@ -493,4 +511,3 @@ APlayerController* UUIManager::GetPlayerController() const
 
 	return World->GetFirstPlayerController();
 }
-

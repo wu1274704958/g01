@@ -7,6 +7,7 @@
 #include "UIViewConfig.h"
 #include "Blueprint/UserWidget.h"
 #include "Subsystems/GameInstanceSubsystem.h"
+#include "Transitions/IUITransition.h"
 #include <functional>
 #include "UIManager.generated.h"
 
@@ -145,4 +146,3 @@ private:
 	// 获取玩家控制器
 	APlayerController* GetPlayerController() const;
 };
-

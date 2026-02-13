@@ -6,6 +6,7 @@
 #include "Components/EditableText.h"
 #include "Components/TextBlock.h"
 #include "P2PHelperStream.h"
+#include "EUtility/UI/UIManager.h"
 
 UMqasNetController::UMqasNetController()
 {
@@ -132,6 +133,9 @@ AUMqasNetAgent* UMqasNetController::GetMqasNetAgent()
 
 void UMqasNetController::OnConnectButtonClicked()
 {
+	//test hide self
+	UUIManager::Get(GetWorld())->HideUI(FName("TestMqasNet"));
+	return;
 	UMqasNetModel* MqasModel = GetMqasModel();
 	if (!MqasModel)
 	{

@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Transitions/IUITransition.h"
 #include "UIViewConfig.generated.h"
 
 /**
@@ -19,19 +20,6 @@ enum class EUIShowMode : uint8
 	
 	// 普通模式 - 正常显示，不影响其他UI
 	Normal UMETA(DisplayName = "Normal")
-};
-
-/**
- * UI过渡动画类型
- */
-UENUM(BlueprintType)
-enum class EUITransition : uint8
-{
-	None UMETA(DisplayName = "None"),
-	Fade UMETA(DisplayName = "Fade"),
-	Slide UMETA(DisplayName = "Slide"),
-	Scale UMETA(DisplayName = "Scale"),
-	Custom UMETA(DisplayName = "Custom")
 };
 
 /**
@@ -58,16 +46,20 @@ struct EUTILITY_API FUIViewConfig
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="UI")
 	bool bShowMouseCursor = true;
 
-	// 过渡动画类型
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="UI")
-	EUITransition TransitionType = EUITransition::Fade;
+	// 显示时的过渡效果类
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="UI|Transaction")
+	TSubclassOf<UUITransaction> ShowTransactionClass;
 
-	// 淡入持续时间
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="UI")
+	// 隐藏时的过渡效果类
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="UI|Transaction")
+	TSubclassOf<UUITransaction> HideTransactionClass;
+
+	// 显示过渡持续时间
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="UI|Transaction")
 	float FadeInDuration = 0.3f;
 
-	// 淡出持续时间
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="UI")
+	// 隐藏过渡持续时间
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="UI|Transaction")
 	float FadeOutDuration = 0.3f;
 
 	// 是否可以通过ESC键关闭
@@ -79,11 +71,11 @@ struct EUTILITY_API FUIViewConfig
 		, ZOrder(0)
 		, bPauseGame(false)
 		, bShowMouseCursor(true)
-		, TransitionType(EUITransition::Fade)
+		, ShowTransactionClass(nullptr)
+		, HideTransactionClass(nullptr)
 		, FadeInDuration(0.3f)
 		, FadeOutDuration(0.3f)
 		, bClosableByEsc(true)
 	{
 	}
 };
-
