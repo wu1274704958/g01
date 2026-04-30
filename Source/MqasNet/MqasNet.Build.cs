@@ -5,6 +5,7 @@ public class MqasNet : ModuleRules
 {
     public MqasNet(ReadOnlyTargetRules Target) : base(Target)
     {
+        PublicDependencyModuleNames.AddRange(new string[] { "EUtility" });
         PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
         
         // Add public dependency modules

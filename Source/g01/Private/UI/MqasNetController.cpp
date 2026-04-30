@@ -133,9 +133,6 @@ AUMqasNetAgent* UMqasNetController::GetMqasNetAgent()
 
 void UMqasNetController::OnConnectButtonClicked()
 {
-	//test hide self
-	UUIManager::Get(GetWorld())->HideUI(FName("TestMqasNet"));
-	return;
 	UMqasNetModel* MqasModel = GetMqasModel();
 	if (!MqasModel)
 	{
