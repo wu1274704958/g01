@@ -22,7 +22,7 @@ class G01_API UMqasNetController : public UUIViewController
 public:
 	UMqasNetController();
 
-	virtual void OnViewCreated(UUserWidget* InView) override;
+	virtual void OnViewCreated(UBaseWidget* InView) override;
 	virtual void OnViewWillAppear() override;
 	virtual void OnViewDidDisappear() override;
 

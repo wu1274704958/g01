@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
-#include "Blueprint/UserWidget.h"
+#include "EUtility/UI/BaseWidget.h"
 #include <functional>
 #include "IUITransition.generated.h"
 
@@ -35,7 +35,7 @@ public:
      * @param Duration - How long the transition should take
      * @param OnComplete - Callback when the transition completes
      */
-    virtual void Execute(UUserWidget* Widget, float Duration, std::function<void()> OnComplete);
+    virtual void Execute(UBaseWidget* Widget, float Duration, std::function<void()> OnComplete);
     
     /**
      * Get current transaction state
@@ -53,7 +53,7 @@ public:
 
     virtual ESlateVisibility PostTransitionVisibility() const { return ESlateVisibility::Visible; }
 
-    virtual bool PreTransition(UUserWidget* Widget, float Duration, std::function<void()> OnComplete);
+    virtual bool PreTransition(UBaseWidget* Widget, float Duration, std::function<void()> OnComplete);
 
     float GetTickTimeDelta();
 
@@ -81,7 +81,7 @@ protected:
     
     // Target widget
     UPROPERTY()
-    TObjectPtr<UUserWidget> TargetWidget = nullptr;
+    TObjectPtr<UBaseWidget> TargetWidget = nullptr;
     
     // Duration of the transaction
     float TransitionDuration = 0.0f;

@@ -20,7 +20,7 @@ UMqasNetController::UMqasNetController()
 	TbBtnConnect = nullptr;
 }
 
-void UMqasNetController::OnViewCreated(UUserWidget* InView)
+void UMqasNetController::OnViewCreated(UBaseWidget* InView)
 {
 	Super::OnViewCreated(InView);
 }

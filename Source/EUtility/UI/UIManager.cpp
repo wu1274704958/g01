@@ -1,7 +1,7 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "UIManager.h"
-#include "Blueprint/UserWidget.h"
+#include "BaseWidget.h"
 #include "Kismet/GameplayStatics.h"
 #include "TimerManager.h"
 #include "Engine/World.h"
@@ -42,7 +42,7 @@ UUIManager* UUIManager::Get(const UObject* WorldContextObject)
 }
 
 void UUIManager::ShowUI(FName ViewName, 
-	TSubclassOf<UUserWidget> WidgetClass,
+	TSubclassOf<UBaseWidget> WidgetClass,
 	TSubclassOf<UUIViewController> ControllerClass,
 	const FUIViewConfig& Config,
 	UObject* Model)
@@ -98,7 +98,7 @@ bool UUIManager::IsUIShowing(FName ViewName) const
 	return ViewInfo && ViewInfo->bIsShowing;
 }
 
-UUserWidget* UUIManager::GetUIWidget(FName ViewName) const
+UBaseWidget* UUIManager::GetUIWidget(FName ViewName) const
 {
 	const FUIViewInfo* ViewInfo = UIViews.Find(ViewName);
 	return ViewInfo ? ViewInfo->Widget : nullptr;
@@ -130,7 +130,7 @@ void UUIManager::SetFadeOutCallback(FName ViewName, std::function<void()> Callba
 }
 
 FUIViewInfo* UUIManager::CreateUIView(FName ViewName,
-	TSubclassOf<UUserWidget> WidgetClass,
+	TSubclassOf<UBaseWidget> WidgetClass,
 	TSubclassOf<UUIViewController> ControllerClass,
 	const FUIViewConfig& Config)
 {
@@ -141,7 +141,7 @@ FUIViewInfo* UUIManager::CreateUIView(FName ViewName,
 	}
 
 	// 创建Widget
-	UUserWidget* Widget = CreateWidget<UUserWidget>(PC, WidgetClass);
+	UBaseWidget* Widget = CreateWidget<UBaseWidget>(PC, WidgetClass);
 	if (!Widget)
 	{
 		return nullptr;

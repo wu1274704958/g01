@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Blueprint/UserWidget.h"
+#include "BaseWidget.h"
 #include "UIViewController.generated.h"
 
 /**
@@ -19,7 +19,7 @@ public:
 	UUIViewController();
 
 	// 生命周期回调
-	virtual void OnViewCreated(UUserWidget* InView);
+	virtual void OnViewCreated(UBaseWidget* InView);
 	virtual void OnViewWillAppear();
 	virtual void OnViewDidAppear();
 	virtual void OnViewWillDisappear();
@@ -37,7 +37,7 @@ public:
 
 	// 获取关联的View
 	UFUNCTION(BlueprintCallable, Category="UI")
-	UUserWidget* GetView() const { return View; }
+	UBaseWidget* GetView() const { return View; }
 
 	// 设置模型数据
 	UFUNCTION(BlueprintCallable, Category="UI")
@@ -48,7 +48,7 @@ public:
 
 protected:
 	UPROPERTY()
-	UUserWidget* View;
+	UBaseWidget* View;
 
 	UPROPERTY()
 	UObject* Model;
@@ -63,4 +63,3 @@ protected:
 	void UpdateView();
 	virtual void UpdateView_Implementation();
 };
-

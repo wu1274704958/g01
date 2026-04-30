@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "UIViewController.h"
 #include "UIViewConfig.h"
-#include "Blueprint/UserWidget.h"
+#include "BaseWidget.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "Transitions/IUITransition.h"
 #include <functional>
@@ -22,7 +22,7 @@ struct FUIViewInfo
 	GENERATED_BODY()
 
 	UPROPERTY()
-	UUserWidget* Widget = nullptr;
+	UBaseWidget* Widget = nullptr;
 
 	UPROPERTY()
 	UUIViewController* Controller = nullptr;
@@ -66,7 +66,7 @@ public:
 	// 显示UI
 	UFUNCTION(BlueprintCallable, Category="UI")
 	void ShowUI(FName ViewName, 
-		TSubclassOf<UUserWidget> WidgetClass,
+		TSubclassOf<UBaseWidget> WidgetClass,
 		TSubclassOf<UUIViewController> ControllerClass,
 		const FUIViewConfig& Config,
 		UObject* Model = nullptr);
@@ -85,7 +85,7 @@ public:
 
 	// 获取UI Widget
 	UFUNCTION(BlueprintCallable, Category="UI")
-	UUserWidget* GetUIWidget(FName ViewName) const;
+	UBaseWidget* GetUIWidget(FName ViewName) const;
 
 	// 获取UI Controller
 	UFUNCTION(BlueprintCallable, Category="UI")
@@ -102,7 +102,7 @@ public:
 protected:
 	// 创建UI视图
 	FUIViewInfo* CreateUIView(FName ViewName,
-		TSubclassOf<UUserWidget> WidgetClass,
+		TSubclassOf<UBaseWidget> WidgetClass,
 		TSubclassOf<UUIViewController> ControllerClass,
 		const FUIViewConfig& Config);
 

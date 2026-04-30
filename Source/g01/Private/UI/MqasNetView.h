@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Blueprint/UserWidget.h"
+#include "EUtility/UI/BaseWidget.h"
 #include "MqasNetView.generated.h"
 
 /**
@@ -12,7 +12,7 @@
  * 业务逻辑由 MqasNetController 处理
  */
 UCLASS()
-class G01_API UMqasNetView : public UUserWidget
+class G01_API UMqasNetView : public UBaseWidget
 {
 	GENERATED_BODY()
 

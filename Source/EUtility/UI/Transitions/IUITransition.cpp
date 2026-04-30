@@ -2,7 +2,7 @@
 #include "TimerManager.h"
 #include "../Log.h"
 
-void UUITransaction::Execute(UUserWidget* Widget, float Duration, std::function<void()> OnComplete)
+void UUITransaction::Execute(UBaseWidget* Widget, float Duration, std::function<void()> OnComplete)
 {
     UWorld* World = Widget->GetWorld();
     if (!World || Duration <= 0.0f)
@@ -14,7 +14,7 @@ void UUITransaction::Execute(UUserWidget* Widget, float Duration, std::function<
     World->GetTimerManager().SetTimer(TimerHandle, this, &UUITransaction::Tick, IntervalPerFrame(), true);
 }
 
-bool UUITransaction::PreTransition(UUserWidget* Widget, float Duration, std::function<void()> OnComplete)
+bool UUITransaction::PreTransition(UBaseWidget* Widget, float Duration, std::function<void()> OnComplete)
 {
     if (!Widget)
     {
@@ -116,4 +116,3 @@ void UUITransaction::ClearTransitionTimer()
         }
     }
 }
-
