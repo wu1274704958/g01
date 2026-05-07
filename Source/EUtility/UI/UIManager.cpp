@@ -154,7 +154,7 @@ FUIViewInfo* UUIManager::CreateUIView(FName ViewName,
 		Controller = NewObject<UUIViewController>(this, ControllerClass);
 		if (Controller)
 		{
-			Controller->OnViewCreated(Widget);
+			Controller->OnViewCreated(Widget, Config);
 		}
 	}
 

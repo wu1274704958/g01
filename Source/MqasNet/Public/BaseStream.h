@@ -12,8 +12,8 @@ public:
 	virtual ~BaseStream();
 	GSY_StreamId GetStreamId() const { return _streamId; }
 	bool Valid() const { return _streamId != INVALID_SID; }
-protected:
 	virtual void InitData(GSY_StreamId streamId);
+protected:
 	virtual void OnClose();
 	
 protected:

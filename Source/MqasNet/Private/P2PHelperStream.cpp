@@ -18,6 +18,7 @@ void P2PHelperStream::InitData(GSY_StreamId streamId)
 {
 	BaseStream::InitData(streamId);
 	s_Registry[streamId] = this;
+	_bIsRegistering = true;
 }
 
 void P2PHelperStream::OnClose()
@@ -79,11 +80,17 @@ void P2PHelperStream::Cb_OnHelperQuitResult(GSY_StreamId sid, GSY_HelperResult* 
 
 void P2PHelperStream::OnRegistrationSuccess(ErrorCode err, GSY_StreamId sid, GSY_PeerId peerId)
 {
+	_bIsRegistering = false;
+	_bIsRegistered = (err == ErrorCode::EC_Ok);
+	if(_bIsRegistered)
+		_PeerId = peerId;
 	_EventListeners.Dispatch(&ILobbyEventListener::OnRegistrationSuccess, err, sid, peerId);
 }
 
 void P2PHelperStream::OnUnregister(ErrorCode err, GSY_StreamId sid)
 {
+	_bIsRegistered = false;
+	_PeerId = INVALID_PID;
 	_EventListeners.Dispatch(&ILobbyEventListener::OnUnregister, err, sid);
 }
 

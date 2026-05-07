@@ -16,9 +16,11 @@ class G01_API ULobbyController : public UUIViewController, public ILobbyEventLis
 	GENERATED_BODY()
 
 public:
-	ULobbyController(std::weak_ptr<P2PHelperStream> stream);
-
-	virtual void OnViewCreated(UBaseWidget* InView) override;
+	ULobbyController();
+	
+	void SetStream(std::weak_ptr<P2PHelperStream> stream);
+public:
+	virtual void OnViewCreated(UBaseWidget* InView, const FUIViewConfig& InConfig) override;
 	virtual void OnViewWillAppear() override;
 	virtual void OnViewDidDisappear() override;
 

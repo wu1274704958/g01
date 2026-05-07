@@ -8,9 +8,10 @@ UUIViewController::UUIViewController()
 	Model = nullptr;
 }
 
-void UUIViewController::OnViewCreated(UBaseWidget* InView)
+void UUIViewController::OnViewCreated(UBaseWidget* InView, const FUIViewConfig& InConfig)
 {
 	View = InView;
+	ViewConfig = InConfig;
 	BindUIEvents();
 }
 

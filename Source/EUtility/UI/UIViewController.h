@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "BaseWidget.h"
+#include "UIViewConfig.h"
 #include "UIViewController.generated.h"
 
 /**
@@ -19,7 +20,7 @@ public:
 	UUIViewController();
 
 	// 生命周期回调
-	virtual void OnViewCreated(UBaseWidget* InView);
+	virtual void OnViewCreated(UBaseWidget* InView, const FUIViewConfig& InConfig);
 	virtual void OnViewWillAppear();
 	virtual void OnViewDidAppear();
 	virtual void OnViewWillDisappear();
@@ -46,12 +47,19 @@ public:
 	UFUNCTION(BlueprintCallable, Category="UI")
 	UObject* GetModel() const { return Model; }
 
+	// 获取视图配置
+	UFUNCTION(BlueprintCallable, Category="UI")
+	const FUIViewConfig& GetViewConfig() const { return ViewConfig; }
+
 protected:
 	UPROPERTY()
 	UBaseWidget* View;
 
 	UPROPERTY()
 	UObject* Model;
+
+	UPROPERTY()
+	FUIViewConfig ViewConfig;
 
 	// 用于子类绑定UI事件
 	UFUNCTION(BlueprintNativeEvent, Category="UI")

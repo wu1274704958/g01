@@ -1,15 +1,27 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "MqasNetController.h"
+
+#include "LobbyController.h"
+#include "LobbyModel.h"
+#include "LobbyView.h"
 #include "EUtility/UI/UIUtility.h"
 #include "Components/Button.h"
 #include "Components/EditableText.h"
 #include "Components/TextBlock.h"
 #include "P2PHelperStream.h"
 #include "EUtility/UI/UIManager.h"
+#include "EUtility/UI/Transitions/SimpleFadeTransition.h"
 
 UMqasNetController::UMqasNetController()
 {
+	LobbyViewClass = ULobbyView::StaticClass();
+	LobbyControllerClass = ULobbyController::StaticClass();
+	ShowLobbyConfig.bShowMouseCursor = true;
+	ShowLobbyConfig.ShowTransactionClass = USlideInTransaction::StaticClass();
+	ShowLobbyConfig.HideTransactionClass = USlideOutTransaction::StaticClass();
+	ShowLobbyConfig.bClosableByEsc = false;
+	ShowLobbyConfig.ShowMode = EUIShowMode::Exclusive;
 	AgentNet = nullptr;
 	BtnConnect = nullptr;
 	EtIp = nullptr;
@@ -20,9 +32,10 @@ UMqasNetController::UMqasNetController()
 	TbBtnConnect = nullptr;
 }
 
-void UMqasNetController::OnViewCreated(UBaseWidget* InView)
+void UMqasNetController::OnViewCreated(UBaseWidget* InView, const FUIViewConfig& InConfig)
 {
-	Super::OnViewCreated(InView);
+	Super::OnViewCreated(InView,InConfig);
+	ShowLobbyConfig.ZOrder = InConfig.ZOrder + 1; 
 }
 
 void UMqasNetController::OnViewWillAppear()
@@ -258,11 +271,32 @@ void UMqasNetController::OnConnected(int Code, GSY_ConnectionHwnd Hwnd)
 	auto Conn = CurrentConnect.lock();
 	if (Conn && MqasModel)
 	{
-		Conn->MakeStream<P2PHelperStream, GSY_LobbyStreamContext, const char*, const char*>(
+		auto stream = Conn->MakeStream<P2PHelperStream, GSY_LobbyStreamContext, const char*, const char*>(
 			GSY_RegisterToLobby,
 			TCHAR_TO_UTF8(*MqasModel->UserName),
 			TCHAR_TO_UTF8(*MqasModel->Password)
 		);
+
+		if (!stream)
+		{
+			UE_LOG(LogMqasNet, Error, TEXT("Register to lobby failed!"));
+			ShowToast(TEXT("Register to lobby failed!"));
+			return;
+		}
+		auto lobbyModel = NewObject<ULobbyModel>(this,ULobbyModel::StaticClass());
+		lobbyModel->UserName = MqasModel->UserName;
+		UUIManager::Get(this)->ShowUI(LobbyViewName,LobbyViewClass,LobbyControllerClass,ShowLobbyConfig,lobbyModel);
+
+		auto controller = UUIManager::Get(this)->GetUIController(LobbyViewName);
+		if (auto lobbyController = Cast<ULobbyController>(controller))
+		{
+			lobbyController->SetStream(stream);
+		}else
+		{
+			UE_LOG(LogMqasNet, Error, TEXT("LobbyController is null"));
+			ShowToast("LobbyController is null!");
+			UUIManager::Get(this)->HideUI(LobbyViewName,true);
+		}
 	}
 }
 

@@ -29,9 +29,6 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category="Lobby")
 	FString UserName;
 
-	UPROPERTY(BlueprintReadWrite, Category="Lobby")
-	FString Password;
-
 	// 注册状态
 	UPROPERTY(BlueprintReadWrite, Category="Lobby")
 	bool bIsRegistered = false;

@@ -6,6 +6,7 @@
 #include "EUtility/UI/UIViewController.h"
 #include "MqasNetModel.h"
 #include "MqasNetAgent.h"
+#include "EUtility/UI/UIViewConfig.h"
 #include "MqasNetController.generated.h"
 
 class BaseConnect;
@@ -22,7 +23,7 @@ class G01_API UMqasNetController : public UUIViewController
 public:
 	UMqasNetController();
 
-	virtual void OnViewCreated(UBaseWidget* InView) override;
+	virtual void OnViewCreated(UBaseWidget* InView, const FUIViewConfig& InConfig) override;
 	virtual void OnViewWillAppear() override;
 	virtual void OnViewDidDisappear() override;
 
@@ -80,5 +81,17 @@ private:
 
 	UPROPERTY()
 	class UTextBlock* TbBtnConnect;
+
+	UPROPERTY(EditAnywhere, Category="UI")
+	TSubclassOf<UBaseWidget> LobbyViewClass;
+
+	UPROPERTY(EditAnywhere, Category="UI")
+	TSubclassOf<UUIViewController> LobbyControllerClass;
+
+	UPROPERTY(EditAnywhere, Category="UI")
+	FName LobbyViewName = TEXT("LobbyView");
+
+	UPROPERTY(EditAnywhere, Category="UI")
+	FUIViewConfig ShowLobbyConfig;
 };
 

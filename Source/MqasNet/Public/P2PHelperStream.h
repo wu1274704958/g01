@@ -24,7 +24,7 @@ public:
 	virtual void OnHelperQuitResult(GSY_StreamId sid, GSY_HelperResult* result) {}
 };
 
-class P2PHelperStream : public BaseStream
+class MQASNET_API P2PHelperStream : public BaseStream
 {
 	using ContextType = GSY_LobbyStreamContext;
 public:
@@ -34,9 +34,8 @@ public:
 
 	void AddListener(ILobbyEventListener* Listener)    { _EventListeners.AddListener(Listener); }
 	void RemoveListener(ILobbyEventListener* Listener) { _EventListeners.RemoveListener(Listener); }
-
-protected:
 	virtual void InitData(GSY_StreamId streamId) override;
+protected:
 	virtual void OnClose() override;
 
 	virtual void OnRegistrationSuccess(ErrorCode err, GSY_StreamId sid, GSY_PeerId peerId);
@@ -66,4 +65,23 @@ private:
 
 	ContextType _Context = {};
 	EventListenerManager<ILobbyEventListener> _EventListeners;
+	GSY_PeerId _PeerId = INVALID_PID;
+	bool _bIsRegistering:1 = false;
+	bool _bIsRegistered:1 = false;
+
+public:
+	[[nodiscard]] bool IsRegistering() const
+	{
+		return _bIsRegistering;
+	}
+
+	[[nodiscard]] bool IsRegistered() const
+	{
+		return _bIsRegistered;
+	}
+
+	[[nodiscard]] GSY_PeerId GetPeerId() const
+	{
+		return _PeerId;
+	}
 };
