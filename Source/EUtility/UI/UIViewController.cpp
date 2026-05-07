@@ -2,6 +2,8 @@
 
 #include "UIViewController.h"
 
+#include "UIManager.h"
+
 UUIViewController::UUIViewController()
 {
 	View = nullptr;
@@ -18,6 +20,16 @@ void UUIViewController::OnViewCreated(UBaseWidget* InView, const FUIViewConfig& 
 void UUIViewController::OnViewWillAppear()
 {
 	// 子类可重写
+}
+
+void UUIViewController::OnViewPerformShow(FUIViewInfo* InViewInfo)
+{
+	ViewInfo = InViewInfo;
+}
+
+void UUIViewController::OnViewPerformHide()
+{
+	ViewInfo = nullptr;
 }
 
 void UUIViewController::OnViewDidAppear()
@@ -65,4 +77,13 @@ void UUIViewController::BindUIEvents_Implementation()
 void UUIViewController::UpdateView_Implementation()
 {
 	// 子类实现具体的UI更新逻辑
+}
+
+void UUIViewController::HideSelf()
+{
+	if (ViewInfo == nullptr || !ViewInfo->bIsShowing)
+	{
+		return;
+	}
+	UUIManager::Get(this)->HideUI(ViewInfo->ViewName);
 }

@@ -6,6 +6,7 @@
 #include "EUtility/UI/UIViewController.h"
 #include "LobbyModel.h"
 #include "P2PHelperStream.h"
+#include "EUtility/UI/Common/LoadingModel.h"
 #include "LobbyController.generated.h"
 
 class P2PHelperStream;
@@ -35,6 +36,22 @@ private:
 
 	UPROPERTY(EditAnywhere, Category="UI")
 	TSubclassOf<UUserWidget> _ToastClass;
+
+	UPROPERTY(EditAnywhere, Category="UI")
+	TSubclassOf<UBaseWidget> _LoadingViewClass;
+
+	UPROPERTY(EditAnywhere, Category="UI")
+	FUIViewConfig _LoadingViewConfig;
+
+	UPROPERTY(EditAnywhere, Category="UI")
+	FName _LoadingName = "Lobby_Loading";
+	
+	UPROPERTY(EditAnywhere, Category="UI")
+	TSubclassOf<ULoadingModel> _LoadingModelClass;
+
+	ULoadingModel* _LoadingModelInstance = nullptr;
+
+	ULoadingModel* GetLoadingModel();
 
 	// ILobbyEventListener
 	virtual void OnRegistrationSuccess(ErrorCode err, GSY_StreamId sid, GSY_PeerId peerId) override;

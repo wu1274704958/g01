@@ -7,7 +7,6 @@
 #include "UIViewConfig.h"
 #include "BaseWidget.h"
 #include "Subsystems/GameInstanceSubsystem.h"
-#include "Transitions/IUITransition.h"
 #include <functional>
 #include "UIManager.generated.h"
 

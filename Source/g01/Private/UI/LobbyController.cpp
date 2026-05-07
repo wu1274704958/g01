@@ -1,7 +1,15 @@
 ﻿#include "LobbyController.h"
+
+#include <cassert>
+
 #include "BaseConnect.h"
 #include "EUtility/UI/UIUtility.h"
 #include "Common.h"
+#include "LobbyView.h"
+#include "Components/Button.h"
+#include "EUtility/UI/UIManager.h"
+#include "EUtility/UI/Common/LoadingController.h"
+#include "EUtility/UI/Common/LoadingView.h"
 
 // ---------------------------------------------------------------------------
 // ULobbyController
@@ -13,6 +21,7 @@ ULobbyController::ULobbyController()
 	{
 		_ToastClass = DefaultToastClass.Class;
 	}
+	_LoadingViewClass = ULoadingView::StaticClass();
 }
 
 void ULobbyController::SetStream(std::weak_ptr<P2PHelperStream> stream)
@@ -28,6 +37,10 @@ void ULobbyController::SetStream(std::weak_ptr<P2PHelperStream> stream)
 			if (model->bIsRegistered)
 			{
 				OnRegistrationSuccess(EC_Ok, streamPtr->GetStreamId(), model->LocalPeerId);	
+			}else
+			{
+				UUIManager::Get(this)->ShowUI(_LoadingName, _LoadingViewClass, ULoadingController::StaticClass(),
+					_LoadingViewConfig,GetLoadingModel());
 			}
 		}
 		else
@@ -74,7 +87,11 @@ void ULobbyController::UpdateView_Implementation()
 {
 	Super::UpdateView_Implementation();
 	ULobbyModel* M = GetLobbyModel();
-	if (!M) return;
+	ULobbyView* V = Cast<ULobbyView>(View);
+	if (!M || !V) return;
+
+	V->btn_refresh_list->SetVisibility(M->bIsRegistered ? ESlateVisibility::Visible : ESlateVisibility::Hidden);
+	V->btn_request_connect->SetVisibility(M->bIsRegistered ? ESlateVisibility::Visible : ESlateVisibility::Hidden);
 	
 }
 
@@ -83,21 +100,39 @@ ULobbyModel* ULobbyController::GetLobbyModel() const
 	return Cast<ULobbyModel>(Model);
 }
 
+ULoadingModel* ULobbyController::GetLoadingModel()
+{
+	if (_LoadingModelInstance)
+		return _LoadingModelInstance;
+	if (_LoadingModelClass == nullptr)
+		UE_LOG(LogMqasNet, Error, TEXT("LobbyController: LoadingModelClass is not set!"));
+	return _LoadingModelInstance = NewObject<ULoadingModel>(this, _LoadingModelClass);
+}
+
 // ---------------------------------------------------------------------------
 // ILobbyEventListener
 // ---------------------------------------------------------------------------
 void ULobbyController::OnRegistrationSuccess(ErrorCode err, GSY_StreamId sid, GSY_PeerId peerId)
 {
+	UUIManager::Get(this)->HideUI(_LoadingName);
 	UE_LOG(LogMqasNet, Log, TEXT("LobbyController::OnRegistrationSuccess - err=%d, peerId=%llu"), (int)err, (uint64)peerId);
 	if (err == EC_Ok)
 	{
 		FString Msg = FString::Printf(TEXT("Register success\nPeerID: %llu\nStreamID: %llu"), (uint64)peerId, (uint64)sid);
 		UIUtility::ShowToast(this, 0, _ToastClass, Msg, 3.0f);
+		ULobbyModel* M = GetLobbyModel();
+		assert(M != nullptr);
+		M->bIsRegistered = true;
+		M->bIsRegistering = false;
+		M->LocalPeerId = peerId;
+		UpdateView_Implementation();
+		//!todo 这里可以直接请求一次PeerList
 	}
 	else
 	{
 		FString Msg = FString::Printf(TEXT("Register failed\nErrorCode: %d\nStreamID: %llu"), (int)err, (uint64)sid);
 		UIUtility::ShowToast(this, 0, _ToastClass, Msg, 3.0f);
+		HideSelf();
 	}
 }
 

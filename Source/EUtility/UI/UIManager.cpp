@@ -77,7 +77,7 @@ void UUIManager::HideUI(FName ViewName, bool bDestroy)
 	{
 		return;
 	}
-
+	
 	PerformHide(ViewInfo, bDestroy);
 }
 

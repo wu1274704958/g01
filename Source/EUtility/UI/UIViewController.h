@@ -7,6 +7,8 @@
 #include "UIViewConfig.h"
 #include "UIViewController.generated.h"
 
+
+struct FUIViewInfo;
 /**
  * UI View Controller - MVC架构中的Controller层
  * 负责View的生命周期管理和业务逻辑
@@ -22,6 +24,8 @@ public:
 	// 生命周期回调
 	virtual void OnViewCreated(UBaseWidget* InView, const FUIViewConfig& InConfig);
 	virtual void OnViewWillAppear();
+	virtual void OnViewPerformShow(FUIViewInfo* InViewInfo);
+	virtual void OnViewPerformHide();
 	virtual void OnViewDidAppear();
 	virtual void OnViewWillDisappear();
 	virtual void OnViewDidDisappear();
@@ -61,6 +65,8 @@ protected:
 	UPROPERTY()
 	FUIViewConfig ViewConfig;
 
+	FUIViewInfo* ViewInfo;
+	
 	// 用于子类绑定UI事件
 	UFUNCTION(BlueprintNativeEvent, Category="UI")
 	void BindUIEvents();
@@ -70,4 +76,7 @@ protected:
 	UFUNCTION(BlueprintNativeEvent, Category="UI")
 	void UpdateView();
 	virtual void UpdateView_Implementation();
+
+	UFUNCTION(BlueprintCallable, Category="UI")
+	void HideSelf();
 };
