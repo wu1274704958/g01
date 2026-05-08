@@ -20,7 +20,7 @@ std::shared_ptr<ST> BaseConnect::MakeStream(GSY_StreamId(* req_func)(GSY_Connect
 		return nullptr;
 	}
 	_StreamMap.emplace(stream_id, stream);
-	stream->InitData(stream_id);
+	stream->InitData(stream_id, _Hwnd);
 	return stream;
 }
 

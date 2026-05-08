@@ -8,9 +8,10 @@ BaseStream::~BaseStream()
 	_streamId = INVALID_SID;
 }
 
-void BaseStream::InitData(GSY_StreamId streamId)
+void BaseStream::InitData(GSY_StreamId streamId, GSY_ConnectionHwnd hwnd)
 {
 	_streamId = streamId;
+	_hwnd = hwnd;
 	_isAlive = true;
 }
 

@@ -49,6 +49,7 @@ private:
 	UPROPERTY(EditAnywhere, Category="UI")
 	TSubclassOf<ULoadingModel> _LoadingModelClass;
 
+	UPROPERTY()
 	ULoadingModel* _LoadingModelInstance = nullptr;
 
 	ULoadingModel* GetLoadingModel();
@@ -63,4 +64,10 @@ private:
 	virtual void OnChangeToHelperResult(GSY_StreamId sid, ErrorCode err, GSY_PeerId peerId) override;
 	virtual void OnAttemptConnect(GSY_StreamId sid, const char* ip, uint16_t port, uint32_t times, uint32_t verifyCode) override;
 	virtual void OnHelperQuitResult(GSY_StreamId sid, GSY_HelperResult* result) override;
+
+	UFUNCTION()
+	void OnRefreshListClicked();
+	UFUNCTION()
+	void OnConnectPeerClicked(int64 PeerId);
 };
+

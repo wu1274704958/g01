@@ -14,9 +14,9 @@ P2PHelperStream::P2PHelperStream() : BaseStream()
 	_Context.on_helper_quit_result      = Cb_OnHelperQuitResult;
 }
 
-void P2PHelperStream::InitData(GSY_StreamId streamId)
+void P2PHelperStream::InitData(GSY_StreamId streamId, GSY_ConnectionHwnd hwnd)
 {
-	BaseStream::InitData(streamId);
+	BaseStream::InitData(streamId, hwnd);
 	s_Registry[streamId] = this;
 	_bIsRegistering = true;
 }
@@ -191,4 +191,14 @@ void P2PHelperStream::OnAttemptConnect(GSY_StreamId sid, const char* ip, uint16_
 void P2PHelperStream::OnHelperQuitResult(GSY_StreamId sid, GSY_HelperResult* result)
 {
 	_EventListeners.Dispatch(&ILobbyEventListener::OnHelperQuitResult, sid, result);
+}
+
+ErrorCode P2PHelperStream::FetchPeerList(GSY_RequestId RequestId)
+{
+	if (!_bIsRegistered)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("P2PHelperStream::FetchPeerList - Not registered, cannot fetch peer list"));
+		return ErrorCode::EC_Fail;
+	}
+	return GSY_FetchPeerList(_hwnd, _streamId, RequestId);
 }

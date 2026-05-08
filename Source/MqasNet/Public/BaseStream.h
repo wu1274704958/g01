@@ -11,13 +11,15 @@ public:
 	BaseStream() = default; 
 	virtual ~BaseStream();
 	GSY_StreamId GetStreamId() const { return _streamId; }
+	GSY_ConnectionHwnd GetHwnd() const { return _hwnd; }
 	bool Valid() const { return _streamId != INVALID_SID; }
-	virtual void InitData(GSY_StreamId streamId);
+	virtual void InitData(GSY_StreamId streamId, GSY_ConnectionHwnd hwnd);
 protected:
 	virtual void OnClose();
 	
 protected:
 	GSY_StreamId _streamId = INVALID_SID;
+	GSY_ConnectionHwnd _hwnd = InvalidConnection;
 	bool _isAlive:1 = false;
 };
 

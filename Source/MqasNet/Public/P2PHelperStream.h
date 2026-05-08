@@ -34,7 +34,7 @@ public:
 
 	void AddListener(ILobbyEventListener* Listener)    { _EventListeners.AddListener(Listener); }
 	void RemoveListener(ILobbyEventListener* Listener) { _EventListeners.RemoveListener(Listener); }
-	virtual void InitData(GSY_StreamId streamId) override;
+	virtual void InitData(GSY_StreamId streamId, GSY_ConnectionHwnd hwnd) override;
 protected:
 	virtual void OnClose() override;
 
@@ -70,18 +70,9 @@ private:
 	bool _bIsRegistered:1 = false;
 
 public:
-	[[nodiscard]] bool IsRegistering() const
-	{
-		return _bIsRegistering;
-	}
+	[[nodiscard]] bool IsRegistering() const { return _bIsRegistering; }
+	[[nodiscard]] bool IsRegistered() const  { return _bIsRegistered; }
+	[[nodiscard]] GSY_PeerId GetPeerId() const { return _PeerId; }
 
-	[[nodiscard]] bool IsRegistered() const
-	{
-		return _bIsRegistered;
-	}
-
-	[[nodiscard]] GSY_PeerId GetPeerId() const
-	{
-		return _PeerId;
-	}
+	ErrorCode FetchPeerList(GSY_RequestId RequestId = NONE_RID);
 };
