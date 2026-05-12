@@ -7,7 +7,7 @@
 
 #include "CoreMinimal.h"
 #include "BaseConnect.h"
-#include "example1/example1.h"
+#include "example1/lobby.h"
 #include "UObject/Object.h"
 #include "MqasNet/Public/Common.h"
 #include "MqasNetAgent.generated.h"

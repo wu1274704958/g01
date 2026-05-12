@@ -1,7 +1,7 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
-#include "example1/example1.h"
+#include "example1/lobby.h"
 
 
 class MQASNET_API BaseStream

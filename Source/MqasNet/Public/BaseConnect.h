@@ -8,7 +8,7 @@
 #include <functional>
 #include "CoreMinimal.h"
 #include "BaseStream.h"
-#include "example1/example1.h"
+#include "example1/lobby.h"
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnConnectErrorDelegate,int,GSY_ConnectionHwnd);
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnConnectedDelegate,int,GSY_ConnectionHwnd);

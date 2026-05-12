@@ -3,7 +3,7 @@
 
 #include "MqasNetAgent.h"
 #include "EUtility/Public/UFilePreprocessor.h"
-#include "MqasNet/example1/example1.h"
+#include "MqasNet/example1/lobby.h"
 
 AUMqasNetAgent* AUMqasNetAgent::instance = nullptr;
 
