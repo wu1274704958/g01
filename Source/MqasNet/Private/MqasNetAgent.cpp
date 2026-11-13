@@ -2,6 +2,8 @@
 
 
 #include "MqasNetAgent.h"
+#include "MqasP2P.h"
+#include "HAL/PlatformFileManager.h"
 #include "EUtility/Public/UFilePreprocessor.h"
 #include "MqasNet/example1/lobby.h"
 
@@ -11,6 +13,7 @@ inline void preprocess(const FString& file)
 {
 	auto path = FPaths::ProjectContentDir() / file;
 	auto out_path = FPaths::ProjectSavedDir() / file;
+	FPlatformFileManager::Get().GetPlatformFile().CreateDirectoryTree(*FPaths::GetPath(out_path));
 	UFilePreprocessor::PreprocessFile(path,false,out_path);
 }
 
@@ -208,6 +211,7 @@ void AUMqasNetAgent::BeginPlay()
 	}
 	instance = this;
 	preprocess(TEXT("NetConfig/hole_punching_config.txt"));
+	preprocess(TEXT("NetConfig/conf_p2p.txt"));
 	bInitialized = GSY_initialize(0, &Context) == EC_Ok;
 	UE_LOG(LogMqasNet, Verbose , TEXT("UMqasNetAgent initialization status = %s"), bInitialized ? TEXT("true") : TEXT("false"));
 	Super::BeginPlay();
@@ -218,6 +222,7 @@ void AUMqasNetAgent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	Super::EndPlay(EndPlayReason);
 	if (bInitialized && (GSY_terminate() == EC_Ok))
 	{
+		MqasP2PShutdown();
 		bInitialized = false;
 	}
 	if (instance == this)

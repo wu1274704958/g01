@@ -1,4 +1,6 @@
 ﻿#include "LobbyController.h"
+#include "P2P/P2PLinkController.h"
+#include "Engine/World.h"
 
 #include <cassert>
 
@@ -70,6 +72,7 @@ void ULobbyController::OnViewWillAppear()
 void ULobbyController::OnViewDidDisappear()
 {
 	Super::OnViewDidDisappear();
+	if (auto Stream = LobbyStream.lock()) Stream->RemoveListener(this);
 	LobbyStream.reset();
 }
 
@@ -163,6 +166,7 @@ void ULobbyController::OnUnregister(ErrorCode err, GSY_StreamId sid)
 void ULobbyController::OnConnectResponds(ErrorCode err, GSY_PeerId otherPeer, GSY_StreamId sid)
 {
 	UE_LOG(LogMqasNet, Log, TEXT("LobbyController::OnConnectResponds - err=%d, otherPeer=%llu"), (int)err, (uint64)otherPeer);
+	if (err != EC_Ok) OnP2PStatus(FString::Printf(TEXT("Peer request rejected or failed: %d"), int32(err)));
 }
 
 void ULobbyController::OnReceivePeerList(GSY_PeerData* list, uint32_t size, GSY_StreamId sid)
@@ -193,7 +197,14 @@ void ULobbyController::OnReceivePeerList(GSY_PeerData* list, uint32_t size, GSY_
 
 void ULobbyController::OnPeerReqConnect(GSY_PeerData* peer, GSY_StreamId sid)
 {
-	UE_LOG(LogMqasNet, Log, TEXT("LobbyController::OnPeerReqConnect"));
+	if (peer)
+    {
+        if (auto Stream = LobbyStream.lock())
+        {
+            const auto Error = GSY_RespondPeerConnectRequest(Stream->GetHwnd(), sid, peer->peer_id, true, NONE_RID);
+            UE_LOG(LogMqasNet, Log, TEXT("Accept peer %u: %d"), peer->peer_id, int32(Error));
+        }
+    }
 }
 
 void ULobbyController::OnError(GSY_ConnectionHwnd conn, GSY_StreamId sid, ErrorCode err, const char* msg, GSY_RequestId reqId)
@@ -204,7 +215,9 @@ void ULobbyController::OnError(GSY_ConnectionHwnd conn, GSY_StreamId sid, ErrorC
 		FString Msg = FString::Printf(TEXT("Failed to fetch peer list\nErrorCode: %d"), (int)err);
 		UIUtility::ShowToast(this, 0, _ToastClass, Msg, 3.0f);
 	}
-	UE_LOG(LogMqasNet, Error, TEXT("LobbyController::OnError - err=%d, msg=%s"), (int)err, UTF8_TO_TCHAR(msg));
+	if (reqId == static_cast<GSY_RequestId>(RID::RequestConnect))
+		OnP2PStatus(FString::Printf(TEXT("Peer request failed: %d"), int32(err)));
+	UE_LOG(LogMqasNet, Error, TEXT("LobbyController::OnError - err=%d, msg=%s"), (int)err, msg ? UTF8_TO_TCHAR(msg) : TEXT(""));
 }
 
 void ULobbyController::OnChangeToHelperResult(GSY_StreamId sid, ErrorCode err, GSY_PeerId peerId)
@@ -220,6 +233,32 @@ void ULobbyController::OnAttemptConnect(GSY_StreamId sid, const char* ip, uint16
 void ULobbyController::OnHelperQuitResult(GSY_StreamId sid, GSY_HelperResult* result)
 {
 	UE_LOG(LogMqasNet, Log, TEXT("LobbyController::OnHelperQuitResult"));
+}
+
+void ULobbyController::OnHelperResult(GSY_StreamId sid, const FP2PHelperResult& Result)
+{
+    auto Stream = LobbyStream.lock();
+    UWorld* World = GetWorld();
+    if (!Stream || !World || Result.Data.ret != EC_Ok)
+    {
+        UE_LOG(LogMqasNet, Warning, TEXT("P2P negotiation failed: %d"), int32(Result.Data.ret));
+        OnP2PStatus(FString::Printf(TEXT("P2P negotiation failed: %d"), int32(Result.Data.ret)));
+        if (Result.Data.ret == EC_Ok) Result.ReleaseSession();
+        return;
+    }
+    auto* Link = World->SpawnActor<AP2PLinkController>();
+    if (!Link) { Result.ReleaseSession(); OnP2PStatus(TEXT("Could not create P2P controller")); return; }
+    Link->OnStatus.AddUObject(this, &ULobbyController::OnP2PStatus);
+    if (!Link->StartLink(Stream->GetPeerId(), Result))
+    {
+        OnP2PStatus(TEXT("Could not start P2P connection"));
+        Link->Destroy();
+    }
+}
+
+void ULobbyController::OnP2PStatus(const FString& Message)
+{
+    UIUtility::ShowToast(this, 0, _ToastClass, Message, 3.0f);
 }
 
 void ULobbyController::OnRefreshListClicked()
@@ -260,4 +299,6 @@ void ULobbyController::OnConnectPeerClicked(int64 PeerId)
 	);
 
 	UE_LOG(LogMqasNet, Log, TEXT("LobbyController::OnConnectPeerClicked - GSY_RequestConnectPeer err=%d"), (int)Err);
+	OnP2PStatus(Err == EC_Pending || Err == EC_Ok ? TEXT("Connecting to peer...") :
+		FString::Printf(TEXT("Peer request failed: %d"), int32(Err)));
 }

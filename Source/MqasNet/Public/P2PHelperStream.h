@@ -1,8 +1,26 @@
 ﻿#pragma once
 #include "BaseStream.h"
 #include <unordered_map>
+#include <string>
+#include <vector>
 
 #include "EUtility/EventListenerManager.h"
+
+// Owns all data supplied by the SDK's callback, including binary token bytes.
+struct MQASNET_API FP2PHelperResult
+{
+	GSY_HelperResult Data{};
+	std::string Reason;
+	std::string RelayToken;
+	std::vector<uint8_t> VerifyToken;
+
+	FP2PHelperResult() = default;
+	explicit FP2PHelperResult(const GSY_HelperResult& Result);
+	GSY_HelperResult Native() const;
+	// Release after an unsuccessful attempt or when this result is discarded.
+	// Copies share the same SDK handle; only the first successful release succeeds.
+	ErrorCode ReleaseSession() const;
+};
 
 /**
  * Listener interface for P2PHelperStream lobby events.
@@ -22,6 +40,7 @@ public:
 	virtual void OnChangeToHelperResult(GSY_StreamId sid, ErrorCode err, GSY_PeerId peerId) {}
 	virtual void OnAttemptConnect(GSY_StreamId sid, const char* ip, uint16_t port, uint32_t times, uint32_t verifyCode) {}
 	virtual void OnHelperQuitResult(GSY_StreamId sid, GSY_HelperResult* result) {}
+	virtual void OnHelperResult(GSY_StreamId sid, const FP2PHelperResult& result) {}
 };
 
 class MQASNET_API P2PHelperStream : public BaseStream
@@ -29,6 +48,7 @@ class MQASNET_API P2PHelperStream : public BaseStream
 	using ContextType = GSY_LobbyStreamContext;
 public:
 	P2PHelperStream();
+	virtual ~P2PHelperStream() override;
 
 	const ContextType* GetContext() const { return &_Context; }
 
@@ -46,7 +66,7 @@ protected:
 	virtual void OnError(GSY_ConnectionHwnd conn, GSY_StreamId sid, ErrorCode err, const char* msg, GSY_RequestId reqId);
 	virtual void OnChangeToHelperResult(GSY_StreamId sid, ErrorCode err, GSY_PeerId peerId);
 	virtual void OnAttemptConnect(GSY_StreamId sid, const char* ip, uint16_t port, uint32_t times, uint32_t verifyCode);
-	virtual void OnHelperQuitResult(GSY_StreamId sid, GSY_HelperResult* result);
+	virtual void OnHelperQuitResult(GSY_StreamId sid, const FP2PHelperResult& result);
 
 private:
 	static void Cb_OnRegistrationSuccess(ErrorCode err, GSY_StreamId sid, GSY_PeerId peerId);
