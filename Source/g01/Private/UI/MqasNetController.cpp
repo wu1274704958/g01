@@ -53,15 +53,15 @@ void UMqasNetController::OnViewDidDisappear()
 {
 	Super::OnViewDidDisappear();
 
-	// 断开连接
-	if (auto Connect = CurrentConnect.lock())
-	{
-		if (Connect->IsConnected())
-		{
-			Connect->Disconnect();
-		}
-	}
-	CurrentConnect.reset();
+    // The GameInstance owns the connection; hiding the view or changing level
+    // only releases this controller's reference and delegate bindings.
+    if (auto Connect = CurrentConnect.lock())
+    {
+        Connect->OnConnectedDelegate.RemoveAll(this);
+        Connect->OnConnectErrorDelegate.RemoveAll(this);
+        Connect->OnDisconnectedDelegate.RemoveAll(this);
+    }
+    CurrentConnect.reset();
 }
 
 void UMqasNetController::BindUIEvents_Implementation()

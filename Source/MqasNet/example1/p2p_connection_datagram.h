@@ -16,7 +16,7 @@ typedef struct GSYNC_EXTERN GSY_P2PDatagramConnectionContext
     void(*on_connect_failed)(ErrorCode, GSY_StreamId, GSY_PeerId, GSY_RequestId);
     void(*on_error)(GSY_ConnectionHwnd, GSY_StreamId, ErrorCode, const char*, GSY_RequestId);
     uint32_t self_id;
-    const char* verify_token; // hex/binary token from NotifyConnectResult; required for client side
+    const char* verify_token; // Reserved for ABI compatibility; ignored by authenticated P2P.
     int verify_token_len;
     int use_relay; // 0 = direct connection, 1 = relay connection; optional for client side, ignored for server side
     int is_server;            // 0 = client (initiator), 1 = server (acceptor)

@@ -20,7 +20,7 @@ void UP2PStateSyncComponent::TickComponent(float DeltaTime, ELevelTick TickType,
     if (!Controller || !Character || Elapsed < 1.f / 15.f) return;
     Elapsed = 0;
     FP2PStatePacket Packet;
-    Packet.Sequence = ++Sequence;
+    Packet.Sequence = Controller->NextStateSequence();
     Packet.Position = Character->GetActorLocation();
     Packet.Rotation = Character->GetActorRotation();
     Packet.Velocity = Character->GetVelocity();

@@ -29,14 +29,23 @@ void BaseConnect::OnConnected(int Code)
 
 void BaseConnect::OnDisconnect(int Code)
 {
-	bIsConnected = false;
+	Invalidate();
 	OnDisconnectedDelegate.Broadcast(Code, _Hwnd);
 }
 
 void BaseConnect::OnConnectError(int Code)
 {
-	bIsConnected = false;
+	Invalidate();
 	OnConnectErrorDelegate.Broadcast(Code, _Hwnd);
+}
+
+void BaseConnect::Invalidate()
+{
+	bIsConnected = false;
+	auto Streams = std::move(_StreamMap);
+	_StreamMap.clear();
+	for (auto& [Id, Stream] : Streams)
+		if (Stream) Stream->OnClose();
 }
 
 void BaseConnect::OnStreamOpen(GSY_StreamId sid, ErrorCode Code)

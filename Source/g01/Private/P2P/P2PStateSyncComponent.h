@@ -17,5 +17,4 @@ public:
 private:
     TWeakObjectPtr<AP2PLinkController> Link;
     float Elapsed = 0;
-    uint32 Sequence = 0;
 };

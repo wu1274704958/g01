@@ -16,10 +16,13 @@ public:
     DECLARE_MULTICAST_DELEGATE_OneParam(FStatus, const FString&);
     FStatus OnStatus;
     bool StartLink(GSY_PeerId LocalPeer, const FP2PHelperResult& Result);
+    bool AttachLink(GSY_PeerId RemotePeer);
     void SendState(const TArray<uint8>& Data);
+    uint32 NextStateSequence();
 protected:
     virtual void EndPlay(const EEndPlayReason::Type Reason) override;
 private:
+    void BindLinkEvents();
     void TransportConnected();
     void DatagramConnected();
     void ReceiveState(const TArray<uint8>& Data);
@@ -34,6 +37,7 @@ private:
     bool bAuthenticated = false;
     bool bStopping = false;
     uint32 LastSequence = 0;
+    uint32 FallbackSequence = 0;
     bool bHasSequence = false;
     UPROPERTY(Transient) TObjectPtr<UP2PStateSyncComponent> StateSync;
     UPROPERTY(Transient) TObjectPtr<APawn> RemotePawn;

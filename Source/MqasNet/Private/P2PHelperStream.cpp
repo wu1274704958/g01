@@ -1,4 +1,18 @@
 #include "P2PHelperStream.h"
+#include "MqasAgent.h"
+#include "Async/Async.h"
+#include <utility>
+
+namespace {
+template <typename F>
+void DispatchLobbyCallback(F&& Callback)
+{
+    const uint64 Epoch = FMqasAgent::Get().GetRuntimeEpoch();
+    AsyncTask(ENamedThreads::GameThread, [Epoch, Callback = std::forward<F>(Callback)]() mutable {
+        if (FMqasAgent::Get().GetRuntimeEpoch() == Epoch) Callback();
+    });
+}
+}
 
 FP2PHelperResult::FP2PHelperResult(const GSY_HelperResult& Result) : Data(Result),
     Reason(Result.reason ? Result.reason : ""), RelayToken(Result.relay_token ? Result.relay_token : "")
@@ -51,7 +65,11 @@ void P2PHelperStream::InitData(GSY_StreamId streamId, GSY_ConnectionHwnd hwnd)
 
 void P2PHelperStream::OnClose()
 {
-	s_Registry.erase(_streamId);
+	if (auto It = s_Registry.find(_streamId); It != s_Registry.end() && It->second == this)
+		s_Registry.erase(It);
+	_bIsRegistering = false;
+	_bIsRegistered = false;
+	_PeerId = INVALID_PID;
 	BaseStream::OnClose();
 }
 
@@ -63,21 +81,21 @@ P2PHelperStream* P2PHelperStream::GetInstance(GSY_StreamId sid)
 
 void P2PHelperStream::Cb_OnRegistrationSuccess(ErrorCode err, GSY_StreamId sid, GSY_PeerId peerId)
 {
-    AsyncTask(ENamedThreads::GameThread, [err,sid,peerId] { if (auto* self = GetInstance(sid)) self->OnRegistrationSuccess(err,sid,peerId); });
+    DispatchLobbyCallback([err,sid,peerId] { if (auto* self = GetInstance(sid)) self->OnRegistrationSuccess(err,sid,peerId); });
 }
 void P2PHelperStream::Cb_OnUnregister(ErrorCode err, GSY_StreamId sid)
 {
-    AsyncTask(ENamedThreads::GameThread, [err,sid] { if (auto* self = GetInstance(sid)) self->OnUnregister(err,sid); });
+    DispatchLobbyCallback([err,sid] { if (auto* self = GetInstance(sid)) self->OnUnregister(err,sid); });
 }
 void P2PHelperStream::Cb_OnConnectResponds(ErrorCode err, GSY_PeerId otherPeer, GSY_StreamId sid)
 {
-    AsyncTask(ENamedThreads::GameThread, [err,otherPeer,sid] { if (auto* self = GetInstance(sid)) self->OnConnectResponds(err,otherPeer,sid); });
+    DispatchLobbyCallback([err,otherPeer,sid] { if (auto* self = GetInstance(sid)) self->OnConnectResponds(err,otherPeer,sid); });
 }
 void P2PHelperStream::Cb_OnReceivePeerList(GSY_PeerData* list, uint32_t size, GSY_StreamId sid)
 {
     TArray<TPair<GSY_PeerId, FString>> Peers;
     for (uint32_t i = 0; list && i < size; ++i) Peers.Emplace(list[i].peer_id, list[i].name ? UTF8_TO_TCHAR(list[i].name) : TEXT(""));
-    AsyncTask(ENamedThreads::GameThread, [sid, Peers = MoveTemp(Peers)] {
+    DispatchLobbyCallback([sid, Peers = MoveTemp(Peers)] {
         if (auto* self = GetInstance(sid)) {
             TArray<std::string> Names; TArray<GSY_PeerData> Native;
             Names.Reserve(Peers.Num()); Native.Reserve(Peers.Num());
@@ -91,29 +109,29 @@ void P2PHelperStream::Cb_OnPeerReqConnect(GSY_PeerData* peer, GSY_StreamId sid)
 {
     if (!peer) return;
     const auto Id = peer->peer_id; FString Name = peer->name ? UTF8_TO_TCHAR(peer->name) : TEXT("");
-    AsyncTask(ENamedThreads::GameThread, [sid, Id, Name = MoveTemp(Name)] {
+    DispatchLobbyCallback([sid, Id, Name = MoveTemp(Name)] {
         if (auto* self = GetInstance(sid)) { FTCHARToUTF8 Utf8(*Name); GSY_PeerData Copy{Id, Utf8.Get()}; self->OnPeerReqConnect(&Copy,sid); }
     });
 }
 void P2PHelperStream::Cb_OnError(GSY_ConnectionHwnd conn, GSY_StreamId sid, ErrorCode err, const char* msg, GSY_RequestId reqId)
 {
     FString Message = msg ? UTF8_TO_TCHAR(msg) : TEXT("");
-    AsyncTask(ENamedThreads::GameThread, [conn,sid,err,reqId,Message = MoveTemp(Message)] { if (auto* self = GetInstance(sid)) self->OnError(conn,sid,err,TCHAR_TO_UTF8(*Message),reqId); });
+    DispatchLobbyCallback([conn,sid,err,reqId,Message = MoveTemp(Message)] { if (auto* self = GetInstance(sid)) self->OnError(conn,sid,err,TCHAR_TO_UTF8(*Message),reqId); });
 }
 void P2PHelperStream::Cb_OnChangeToHelperResult(GSY_StreamId sid, ErrorCode err, GSY_PeerId peerId)
 {
-    AsyncTask(ENamedThreads::GameThread, [sid,err,peerId] { if (auto* self = GetInstance(sid)) self->OnChangeToHelperResult(sid,err,peerId); });
+    DispatchLobbyCallback([sid,err,peerId] { if (auto* self = GetInstance(sid)) self->OnChangeToHelperResult(sid,err,peerId); });
 }
 void P2PHelperStream::Cb_OnAttemptConnect(GSY_StreamId sid, const char* ip, uint16_t port, uint32_t times, uint32_t verifyCode)
 {
     FString Ip = ip ? UTF8_TO_TCHAR(ip) : TEXT("");
-    AsyncTask(ENamedThreads::GameThread, [sid,port,times,verifyCode,Ip = MoveTemp(Ip)] { if (auto* self = GetInstance(sid)) self->OnAttemptConnect(sid,TCHAR_TO_UTF8(*Ip),port,times,verifyCode); });
+    DispatchLobbyCallback([sid,port,times,verifyCode,Ip = MoveTemp(Ip)] { if (auto* self = GetInstance(sid)) self->OnAttemptConnect(sid,TCHAR_TO_UTF8(*Ip),port,times,verifyCode); });
 }
 void P2PHelperStream::Cb_OnHelperQuitResult(GSY_StreamId sid, GSY_HelperResult* result)
 {
     if (!result) return;
     FP2PHelperResult Copy(*result);
-    AsyncTask(ENamedThreads::GameThread, [sid,Copy = MoveTemp(Copy)] {
+    DispatchLobbyCallback([sid,Copy = MoveTemp(Copy)] {
         if (auto* self = GetInstance(sid)) self->OnHelperQuitResult(sid,Copy);
         else if (Copy.Data.ret == EC_Ok) Copy.ReleaseSession();
     });

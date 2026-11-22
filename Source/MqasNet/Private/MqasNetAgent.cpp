@@ -1,230 +1,34 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "MqasNetAgent.h"
-#include "MqasP2P.h"
-#include "HAL/PlatformFileManager.h"
-#include "EUtility/Public/UFilePreprocessor.h"
-#include "MqasNet/example1/lobby.h"
+#include "MqasClientSubsystem.h"
+#include "Engine/GameInstance.h"
 
-AUMqasNetAgent* AUMqasNetAgent::instance = nullptr;
-
-inline void preprocess(const FString& file)
+FMqasClientId AUMqasNetAgent::GetClient() const
 {
-	auto path = FPaths::ProjectContentDir() / file;
-	auto out_path = FPaths::ProjectSavedDir() / file;
-	FPlatformFileManager::Get().GetPlatformFile().CreateDirectoryTree(*FPaths::GetPath(out_path));
-	UFilePreprocessor::PreprocessFile(path,false,out_path);
+    const auto* GI = GetGameInstance();
+    const auto* Subsystem = GI ? GI->GetSubsystem<UMqasClientSubsystem>() : nullptr;
+    return Subsystem ? Subsystem->GetClientId() : InvalidMqasClient;
 }
-
-bool AUMqasNetAgent::IsConnected(GSY_ConnectionHwnd hwnd)
-{
-	return GSY_is_connected(hwnd) != 0;
-}
-
-std::weak_ptr<BaseConnect> AUMqasNetAgent::ConnectTo(GSY_EngineId EngineId, const FString& ConfigFile,
-	const FString& Ip, short Port)
-{
-	const FString RealConfigPath = FPaths::ProjectSavedDir() / ConfigFile;
-	const auto hwnd = GSY_connect(EngineId, TCHAR_TO_UTF8(*RealConfigPath), TCHAR_TO_UTF8(*Ip), Port, &ConnectionContext);
-	if (hwnd == InvalidConnection)
-	{
-		UE_LOG(LogMqasNet, Warning, TEXT("ConnectTo failed: EngineId=%d, ConfigFile=%s, Ip=%s, Port=%d"),
-			(int)EngineId, *ConfigFile, *Ip, Port);
-		return {};
-	}
-	auto conn = std::make_shared<BaseConnect>();
-	conn->InitData(hwnd,EngineId,std::move(ConfigFile),std::move(Ip), Port);
-	ConnectionMap.insert({hwnd,conn});
-	return conn;
-}
-
-void AUMqasNetAgent::OnErrorCallback(const FString& msg, int code)
-{
-	OnError.Broadcast(msg,code);
-}
-
-void AUMqasNetAgent::OnConnectCallback(int code, GSY_ConnectionHwnd hwnd)
-{
-	if (!ConnectionMap.contains(hwnd))
-	{
-		UE_LOG(LogMqasNet,Warning,TEXT("OnConnectCallback : unknown handle = %u,code = %d"), hwnd,code);
-		return;
-	}
-	auto conn = ConnectionMap[hwnd];
-	conn->OnConnected(code);
-}
-
-void AUMqasNetAgent::OnDisconnectCallback(int code, GSY_ConnectionHwnd hwnd)
-{
-	if (!ConnectionMap.contains(hwnd))
-	{
-		UE_LOG(LogMqasNet,Warning,TEXT("OnDisconnectCallback : unknown handle = %u,code = %d"), hwnd,code);
-		return;
-	}
-	auto conn = ConnectionMap[hwnd];
-	conn->OnDisconnect(code);
-	ConnectionMap.erase(hwnd);
-}
-
-void AUMqasNetAgent::OnConnectErrorCallback(int code, GSY_ConnectionHwnd hwnd)
-{
-	if (!ConnectionMap.contains(hwnd))
-	{
-		UE_LOG(LogMqasNet,Warning,TEXT("OnConnectErrorCallback : unknown handle = %u,code = %d"), hwnd,code);
-		return;
-	}
-	auto conn = ConnectionMap[hwnd];
-	conn->OnConnectError(code);
-	ConnectionMap.erase(hwnd);
-}
-
-void AUMqasNetAgent::OnStreamOpenCallback(GSY_ConnectionHwnd hwnd, GSY_StreamId sid, ErrorCode code)
-{
-	if (ConnectionMap.contains(hwnd))
-		ConnectionMap[hwnd]->OnStreamOpen(sid,code);
-}
-
-void AUMqasNetAgent::OnStreamCloseCallback(GSY_ConnectionHwnd hwnd, GSY_StreamId sid, ErrorCode code)
-{
-	if (ConnectionMap.contains(hwnd))
-		ConnectionMap[hwnd]->OnStreamClose(sid, code);
-}
-
-
-void AUMqasNetAgent::OnErrorCallbackGlobal(const char* msg, int code)
-{
-	const auto& Name = StringCast<WIDECHAR>(msg);
-	if (instance != nullptr)
-		instance->OnErrorCallback(Name.Get(), code);
-	UE_LOG(LogMqasNet, Warning, TEXT("UMqasNetAgent::OnErrorCallback: %hs,code = %d"), msg,code);
-}
-
-void AUMqasNetAgent::OnConnectCallbackGlobal(int code, GSY_ConnectionHwnd hwnd)
-{
-	if (instance != nullptr)
-	{
-		if (IsInGameThread())
-			instance->OnConnectCallback(code, hwnd);
-		else
-		{
-			AsyncTask(ENamedThreads::GameThread, [code,hwnd]()
-			{
-				if (instance)
-					instance->OnConnectCallback(code, hwnd);
-			});
-		}
-	}
-	UE_LOG(LogMqasNet, Verbose, TEXT("UMqasNetAgent::OnConnectCallback: handle = %u,code = %d"), hwnd,code);
-}
-
-void AUMqasNetAgent::OnDisconnectCallbackGlobal(int code, GSY_ConnectionHwnd hwnd)
-{
-	if (instance != nullptr)
-	{
-		if (IsInGameThread())
-			instance->OnDisconnectCallback(code, hwnd);
-		else
-		{
-			AsyncTask(ENamedThreads::GameThread, [code,hwnd]()
-			{
-				if (instance)
-					instance->OnDisconnectCallback(code, hwnd);
-			});
-		}
-	}
-	UE_LOG(LogMqasNet, Verbose, TEXT("UMqasNetAgent::OnDisconnectCallback: handle = %u,code = %d"), hwnd,code);
-}
-
-void AUMqasNetAgent::OnConnectErrorCallbackGlobal(int code, GSY_ConnectionHwnd hwnd)
-{
-	if (instance != nullptr)
-	{
-		if (IsInGameThread())
-			instance->OnConnectErrorCallback(code, hwnd);
-		else
-		{
-			AsyncTask(ENamedThreads::GameThread, [code,hwnd]()
-			{
-				if (instance)
-					instance->OnConnectErrorCallback(code, hwnd);
-			});
-		}
-	}
-	UE_LOG(LogMqasNet, Warning, TEXT("UMqasNetAgent::OnConnectErrorCallback: handle = %u,code = %d"), hwnd,code);
-}
-
-void AUMqasNetAgent::OnStreamOpenCallbackGlobal(GSY_ConnectionHwnd hwnd, GSY_StreamId sid, ErrorCode code)
-{
-	if (instance != nullptr)
-	{
-		if (IsInGameThread())
-			instance->OnStreamOpenCallback(hwnd, sid, code);
-		else
-		{
-			AsyncTask(ENamedThreads::GameThread, [hwnd,sid,code]()
-			{
-				if (instance)
-					instance->OnStreamOpenCallback(hwnd, sid, code);
-			});
-		}
-	}
-	UE_LOG(LogMqasNet, Verbose, TEXT("UMqasNetAgent::OnStreamOpenCallback: handle = %u,stream id = %u,code = %d"), hwnd,sid,code);
-}
-
-void AUMqasNetAgent::OnStreamCloseCallbackGlobal(GSY_ConnectionHwnd hwnd, GSY_StreamId sid, ErrorCode code)
-{
-	if (instance != nullptr)
-	{
-		if (IsInGameThread())
-			instance->OnStreamCloseCallback(hwnd, sid, code);
-		else
-		{
-			AsyncTask(ENamedThreads::GameThread, [hwnd,sid,code]()
-			{
-				if (instance)
-					instance->OnStreamCloseCallback(hwnd, sid, code);
-			});
-		}
-	}
-	UE_LOG(LogMqasNet, Verbose, TEXT("UMqasNetAgent::OnStreamCloseCallback: handle = %u,stream id = %u,code = %d"), hwnd,sid,code);
-}
-
-AUMqasNetAgent::AUMqasNetAgent()
-{
-	Context.on_error = OnErrorCallbackGlobal;
-
-	ConnectionContext.on_error = OnConnectErrorCallbackGlobal;
-	ConnectionContext.on_connect = OnConnectCallbackGlobal;
-	ConnectionContext.on_disconnect = OnDisconnectCallbackGlobal;
-	ConnectionContext.on_stream_open = OnStreamOpenCallbackGlobal;
-	ConnectionContext.on_stream_close = OnStreamCloseCallbackGlobal;
-}
+bool AUMqasNetAgent::IsInitialized() const { return AgentIsInitialized(GetClient()); }
+bool AUMqasNetAgent::IsConnected(GSY_ConnectionHwnd H) { return AgentIsConnected(GetClient(), H); }
+std::weak_ptr<BaseConnect> AUMqasNetAgent::ConnectTo(GSY_EngineId E, const FString& C, const FString& I, short P)
+{ return AgentConnectTo(GetClient(), E, C, I, P); }
+bool AUMqasNetAgent::AgentIsInitialized(FMqasClientId C) const
+{ return C == GetClient() && FMqasAgent::Get().AgentIsInitialized(C); }
+bool AUMqasNetAgent::AgentIsConnected(FMqasClientId C, GSY_ConnectionHwnd H) const
+{ return C == GetClient() && FMqasAgent::Get().AgentIsConnected(C, H); }
+TArray<GSY_PeerId> AUMqasNetAgent::AgentGetPeerIds(FMqasClientId C) const
+{ return C == GetClient() ? FMqasAgent::Get().AgentGetPeerIds(C) : TArray<GSY_PeerId>{}; }
+std::weak_ptr<BaseConnect> AUMqasNetAgent::AgentConnectTo(FMqasClientId C, GSY_EngineId E, const FString& F, const FString& I, short P)
+{ return C == GetClient() ? FMqasAgent::Get().AgentConnectTo(C,E,F,I,P) : std::weak_ptr<BaseConnect>{}; }
 
 void AUMqasNetAgent::BeginPlay()
 {
-	if (instance != nullptr && instance != this)
-	{
-		//error
-		UE_LOG(LogTemp, Error, TEXT("MqasNetAgent instance already exists!"));
-		return;
-	}
-	instance = this;
-	preprocess(TEXT("NetConfig/hole_punching_config.txt"));
-	preprocess(TEXT("NetConfig/conf_p2p.txt"));
-	bInitialized = GSY_initialize(0, &Context) == EC_Ok;
-	UE_LOG(LogMqasNet, Verbose , TEXT("UMqasNetAgent initialization status = %s"), bInitialized ? TEXT("true") : TEXT("false"));
-	Super::BeginPlay();
+    Super::BeginPlay();
+    FMqasAgent::Get().OnError.AddUObject(this, &AUMqasNetAgent::OnGlobalError);
 }
-
-void AUMqasNetAgent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+void AUMqasNetAgent::EndPlay(const EEndPlayReason::Type Reason)
 {
-	Super::EndPlay(EndPlayReason);
-	if (bInitialized && (GSY_terminate() == EC_Ok))
-	{
-		MqasP2PShutdown();
-		bInitialized = false;
-	}
-	if (instance == this)
-		instance = nullptr;
+    FMqasAgent::Get().OnError.RemoveAll(this);
+    Super::EndPlay(Reason);
 }
+void AUMqasNetAgent::OnGlobalError(const FString& Message, int Code) { OnError.Broadcast(Message, Code); }

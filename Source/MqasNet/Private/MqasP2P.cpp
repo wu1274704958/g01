@@ -1,4 +1,5 @@
 #include "MqasP2P.h"
+#include "MqasAgent.h"
 #include "Async/Async.h"
 #include <atomic>
 #include <mutex>
@@ -26,6 +27,7 @@ struct FMqasPeerState : std::enable_shared_from_this<FMqasPeerState> {
     std::atomic<GSY_StreamId> Stream{INVALID_SID};
     std::atomic<bool> Connected{false}, DatagramConnected{false}, Started{false}, Opened{false}, Finished{false};
     bool Server = false;
+    uint64 RuntimeEpoch = 0;
     GSY_PeerId Self = INVALID_PID, Other = INVALID_PID;
     FP2PHelperResult Session;
     GSY_P2PPeerContext PeerContext{};
@@ -34,7 +36,8 @@ struct FMqasPeerState : std::enable_shared_from_this<FMqasPeerState> {
     template<class F> void Game(F&& Fn) {
         auto Weak = weak_from_this();
         AsyncTask(ENamedThreads::GameThread, [Weak, Fn = std::forward<F>(Fn)]() mutable {
-            if (auto State = Weak.lock()) Fn(*State);
+            if (auto State = Weak.lock(); State && !State->Finished &&
+                FMqasAgent::Get().GetRuntimeEpoch() == State->RuntimeEpoch) Fn(*State);
         });
     }
     void RegisterStream(GSY_StreamId Sid) {
@@ -65,6 +68,7 @@ struct FMqasPeerState : std::enable_shared_from_this<FMqasPeerState> {
         S->Connected = false; S->DatagramConnected = false;
         // Keep state alive through the dispatched terminal event.
         AsyncTask(ENamedThreads::GameThread, [S, Error, WasConnected] {
+            if (FMqasAgent::Get().GetRuntimeEpoch() != S->RuntimeEpoch) return;
             if (auto O = S->Owner.lock()) { if (WasConnected) O->OnClosed.Broadcast(Error); else O->OnFailed.Broadcast(Error); }
             else if (!WasConnected) S->Session.ReleaseSession();
         });
@@ -116,6 +120,7 @@ bool FMqasPeer::SetDatagram(const std::shared_ptr<FMqasDatagram>& D) {
 }
 ErrorCode FMqasPeer::Start(const FString& ConfigPath, GSY_PeerId Self, const FP2PHelperResult& Result) {
     check(IsInGameThread()); if (State->Started.exchange(true)) return EC_Fail;
+    State->RuntimeEpoch = FMqasAgent::Get().GetRuntimeEpoch();
     State->Session = Result; State->Self = Self; State->Other = Result.Data.peer_id; State->Server = Result.Data.is_server != 0;
     State->DatagramContext.self_id = Self; State->DatagramContext.is_server = State->Server;
     { std::lock_guard<std::mutex> Lock(RegistryMutex); Peers.emplace(State.get(), State); }

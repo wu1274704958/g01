@@ -18,4 +18,6 @@ void BaseStream::InitData(GSY_StreamId streamId, GSY_ConnectionHwnd hwnd)
 void BaseStream::OnClose()
 {
 	_isAlive = false;
+	_streamId = INVALID_SID;
+	_hwnd = InvalidConnection;
 }

@@ -42,10 +42,10 @@ void AT1PlayerController::SetupInputComponent()
 	auto inputComp = Cast<UEnhancedInputComponent>(InputComponent);
 	if(inputComp)
 	{
-		if(IA_Move)inputComp->BindAction(IA_Move.Get(),ETriggerEvent::Triggered,this,&AT1PlayerController::OnMoveTriggered);
-		if(IA_Look)inputComp->BindAction(IA_Look.Get(),ETriggerEvent::Triggered,this,&AT1PlayerController::OnLookTriggered);
-		if(IA_Jump)inputComp->BindAction(IA_Jump.Get(),ETriggerEvent::Triggered,this,&AT1PlayerController::OnJumpTriggered);
-	    if(IA_IsRunning)inputComp->BindAction(IA_IsRunning.Get(),ETriggerEvent::Triggered,this,&AT1PlayerController::OnIsRunningTrigged);
+		if (const auto* Action = IA_Move.LoadSynchronous()) inputComp->BindAction(Action, ETriggerEvent::Triggered, this, &AT1PlayerController::OnMoveTriggered);
+		if (const auto* Action = IA_Look.LoadSynchronous()) inputComp->BindAction(Action, ETriggerEvent::Triggered, this, &AT1PlayerController::OnLookTriggered);
+		if (const auto* Action = IA_Jump.LoadSynchronous()) inputComp->BindAction(Action, ETriggerEvent::Triggered, this, &AT1PlayerController::OnJumpTriggered);
+		if (const auto* Action = IA_IsRunning.LoadSynchronous()) inputComp->BindAction(Action, ETriggerEvent::Triggered, this, &AT1PlayerController::OnIsRunningTrigged);
 	}
 }
 

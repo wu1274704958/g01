@@ -15,13 +15,15 @@ DECLARE_MULTICAST_DELEGATE_TwoParams(FOnConnectedDelegate,int,GSY_ConnectionHwnd
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnDisconnectedDelegate,int,GSY_ConnectionHwnd);
 
 class AUMqasNetAgent;
+class FMqasAgent;
 
 /**
  * 
  */
 class MQASNET_API BaseConnect
 {
-	friend AUMqasNetAgent; 
+	friend AUMqasNetAgent;
+	friend class FMqasAgent;
 public:
 	BaseConnect();
 	~BaseConnect();
@@ -33,6 +35,7 @@ protected:
 	void OnConnectError(int Code);
 	void OnStreamOpen(GSY_StreamId sid,ErrorCode Code);
 	void OnStreamClose(GSY_StreamId sid,ErrorCode Code);
+	void Invalidate();
 public: //public methods
 	GSY_ConnectionHwnd GetHwnd() const { return _Hwnd; }
 	GSY_EngineId GetEngineId() const { return _EngineId; }
