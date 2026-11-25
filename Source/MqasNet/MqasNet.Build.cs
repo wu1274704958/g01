@@ -34,8 +34,7 @@ public class MqasNet : ModuleRules
         // Add public include paths
         PublicIncludePaths.AddRange(
             [
-                Path.Combine(ModuleDir, "include"),
-                ModuleDir
+                Path.Combine(ModuleDir, "include")
             ]
         );
         
@@ -51,7 +50,6 @@ public class MqasNet : ModuleRules
         string Architecture = "";
         string ConfigDir = "";
         string StaticLibExt = "";
-        string SharedLibExt = "";
         string SharedLibPattern = "";
         
         // Determine platform directory and file extensions
@@ -60,7 +58,6 @@ public class MqasNet : ModuleRules
             PlatformDir = "windows";
             Architecture = "x64";
             StaticLibExt = ".lib";
-            SharedLibExt = ".dll";
             SharedLibPattern = "*.dll";
         }
         else if (Target.Platform == UnrealTargetPlatform.Linux)
@@ -68,7 +65,6 @@ public class MqasNet : ModuleRules
             PlatformDir = "linux";
             Architecture = "x64";
             StaticLibExt = ".a";
-            SharedLibExt = ".so";
             SharedLibPattern = "*.so*"; // Include versioned libraries
         }
         else if (Target.Platform == UnrealTargetPlatform.Mac)
@@ -76,7 +72,6 @@ public class MqasNet : ModuleRules
             PlatformDir = "mac";
             Architecture = Target.Architecture == UnrealArch.Arm64 ? "arm64" : "x64";
             StaticLibExt = ".a";
-            SharedLibExt = ".dylib";
             SharedLibPattern = "*.dylib";
         }
         else
@@ -104,7 +99,7 @@ public class MqasNet : ModuleRules
             System.Console.WriteLine($"Adding library directory: {LibDir}");
             
             // Add all static library files
-            var staticLibs = Directory.GetFiles(LibDir, $"*{StaticLibExt}");
+            var staticLibs = Directory.GetFiles(LibDir, $"gsync_e1{StaticLibExt}");
             foreach (string lib in staticLibs)
             {
                 string libName = Path.GetFileName(lib);
@@ -128,9 +123,13 @@ public class MqasNet : ModuleRules
         if (Directory.Exists(BinDir))
         {
             // Add all shared library files
-            var sharedLibs = Directory.GetFiles(BinDir, SharedLibPattern);
+            string manifest = Path.Combine(BinDir, "gsync-runtime.txt");
+            var sharedLibs = File.Exists(manifest)
+                ? System.Array.ConvertAll(File.ReadAllLines(manifest), name => Path.Combine(BinDir, name.Trim()))
+                : Directory.GetFiles(BinDir, SharedLibPattern);
             foreach (string lib in sharedLibs)
             {
+                if (!File.Exists(lib)) throw new BuildException($"Missing gsync runtime dependency: {lib}");
                 RuntimeDependencies.Add($"$(BinaryOutputDir)/{Path.GetFileName(lib)}", lib);
                 System.Console.WriteLine($"Adding runtime dependency: $(BinaryOutputDir)/{Path.GetFileName(lib)}:{lib}");
             }

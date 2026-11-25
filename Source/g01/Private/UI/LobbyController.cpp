@@ -1,4 +1,4 @@
-﻿#include "LobbyController.h"
+#include "LobbyController.h"
 #include "P2P/P2PLinkController.h"
 #include "Engine/World.h"
 
@@ -249,7 +249,7 @@ void ULobbyController::OnHelperResult(GSY_StreamId sid, const FP2PHelperResult& 
     auto* Link = World->SpawnActor<AP2PLinkController>();
     if (!Link) { Result.ReleaseSession(); OnP2PStatus(TEXT("Could not create P2P controller")); return; }
     Link->OnStatus.AddUObject(this, &ULobbyController::OnP2PStatus);
-    if (!Link->StartLink(Stream->GetPeerId(), Result))
+    if (!Link->StartLink(Stream, Result))
     {
         OnP2PStatus(TEXT("Could not start P2P connection"));
         Link->Destroy();

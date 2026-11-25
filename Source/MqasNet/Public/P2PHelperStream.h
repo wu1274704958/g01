@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "BaseStream.h"
+#include "gsync/example1/lobby.h"
 #include <unordered_map>
 #include <string>
 #include <vector>
@@ -41,6 +42,7 @@ public:
 	virtual void OnAttemptConnect(GSY_StreamId sid, const char* ip, uint16_t port, uint32_t times, uint32_t verifyCode) {}
 	virtual void OnHelperQuitResult(GSY_StreamId sid, GSY_HelperResult* result) {}
 	virtual void OnHelperResult(GSY_StreamId sid, const FP2PHelperResult& result) {}
+	virtual void OnP2PServerReady(GSY_StreamId sid, GSY_PeerId peer, GSY_SessionHandle session) {}
 };
 
 class MQASNET_API P2PHelperStream : public BaseStream
@@ -67,6 +69,7 @@ protected:
 	virtual void OnChangeToHelperResult(GSY_StreamId sid, ErrorCode err, GSY_PeerId peerId);
 	virtual void OnAttemptConnect(GSY_StreamId sid, const char* ip, uint16_t port, uint32_t times, uint32_t verifyCode);
 	virtual void OnHelperQuitResult(GSY_StreamId sid, const FP2PHelperResult& result);
+	virtual void OnP2PServerReady(GSY_StreamId sid, GSY_PeerId peer, GSY_SessionHandle session);
 
 private:
 	static void Cb_OnRegistrationSuccess(ErrorCode err, GSY_StreamId sid, GSY_PeerId peerId);
@@ -78,6 +81,7 @@ private:
 	static void Cb_OnChangeToHelperResult(GSY_StreamId sid, ErrorCode err, GSY_PeerId peerId);
 	static void Cb_OnAttemptConnect(GSY_StreamId sid, const char* ip, uint16_t port, uint32_t times, uint32_t verifyCode);
 	static void Cb_OnHelperQuitResult(GSY_StreamId sid, GSY_HelperResult* result);
+	static void Cb_OnP2PServerReady(GSY_StreamId sid, GSY_PeerId peer, GSY_SessionHandle session);
 
 	static P2PHelperStream* GetInstance(GSY_StreamId sid);
 
@@ -95,4 +99,9 @@ public:
 	[[nodiscard]] GSY_PeerId GetPeerId() const { return _PeerId; }
 
 	ErrorCode FetchPeerList(GSY_RequestId RequestId = NONE_RID);
+	ErrorCode RequestPeer(GSY_PeerId Peer, GSY_ServerPreference Preference = GSY_SERVER_NO_PREFERENCE, GSY_RequestId RequestId = NONE_RID);
+	ErrorCode RespondPeer(GSY_PeerId Peer, bool Accept, GSY_ServerPreference Preference = GSY_SERVER_NO_PREFERENCE, GSY_RequestId RequestId = NONE_RID);
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FServerReady, GSY_PeerId, GSY_SessionHandle);
+	FServerReady OnServerReady;
+	ErrorCode NotifyP2PServerReady(GSY_SessionHandle Session);
 };

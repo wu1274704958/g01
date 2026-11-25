@@ -28,6 +28,12 @@ struct FTravelSmoke : ILobbyEventListener, std::enable_shared_from_this<FTravelS
     bool bHost = false, bRequested = false, bMoved = false, bPassed = false;
     bool bRequestedGC = false, bCheckedInput = false;
     bool bKeyPressed = false, bLocalMovedByInput = false;
+    bool bExtraSent = false, bExtraReceived = false, bThirdSent = false, bThirdReceived = false;
+    bool bExtraCloseRequested = false, bExtraClosed = false;
+    bool bReadyToClose = false, bPeerCloseRequested = false, bPeerClosed = false;
+    double ReadyAt = 0;
+    std::weak_ptr<BaseConnect> PeerConnection;
+    std::weak_ptr<FMqasDatagram> ExtraStream;
     GSY_PeerId Self = INVALID_PID;
     double LastFetch = 0;
     double ToastShownAt = 0;
@@ -102,11 +108,105 @@ struct FTravelSmoke : ILobbyEventListener, std::enable_shared_from_this<FTravelS
         ToastShownAt = FPlatformTime::Seconds();
         UE_LOG(LogTemp, Log, TEXT("P2P_TRAVEL_SMOKE toast before travel"));
         auto* Link = World->SpawnActor<AP2PLinkController>();
-        if (!Link || !Link->StartLink(Self, Result)) { if (Link) Link->Destroy(); Fail(TEXT("P2P link failed to start")); }
+        if (!Link || !Link->StartLink(Lobby, Result)) { if (Link) Link->Destroy(); Fail(TEXT("P2P link failed to start")); return; }
+        auto* Client = GI->GetSubsystem<UMqasClientSubsystem>();
+        std::shared_ptr<FMqasPeer> Peer;
+        if (!Client || !FMqasAgent::Get().FindPeer(Client->GetClientId(), Result.Data.peer_id, Peer)) {
+            Fail(TEXT("Retained peer missing")); return;
+        }
+        auto PrimaryBase = Peer->FindLocalStream(101);
+        if (!PrimaryBase || PrimaryBase->GetDirectStreamType() != EMqasDirectStreamType::Datagram) { Fail(TEXT("Primary stream missing")); return; }
+        auto Primary = std::static_pointer_cast<FMqasDatagram>(PrimaryBase);
+        PeerConnection = Peer;
+        std::weak_ptr<FTravelSmoke> Weak = shared_from_this();
+        Peer->OnConnectedDelegate.AddLambda([Weak, WeakPeer = std::weak_ptr<FMqasPeer>(Peer)](int Code, GSY_ConnectionHwnd Handle) {
+            auto P = WeakPeer.lock();
+            std::shared_ptr<BaseConnect> Base = P;
+            if (Code != EC_Ok || !Base || !Base->IsConnected() || Handle == InvalidConnection || Base->GetHwnd() != Handle || P->GetConnection() != Handle)
+                if (auto S = Weak.lock()) S->Fail(TEXT("Peer base connection state mismatch"));
+        });
+        Peer->OnDisconnectedDelegate.AddLambda([Weak, WeakPeer = std::weak_ptr<FMqasPeer>(Peer)](int, GSY_ConnectionHwnd Handle) {
+            if (auto S = Weak.lock()) {
+                auto P = WeakPeer.lock();
+                if (!P || P->IsConnected() || Handle == InvalidConnection || P->GetHwnd() != Handle)
+                    S->Fail(TEXT("Peer base disconnection state mismatch"));
+                else S->bPeerClosed = true;
+            }
+        });
+        Primary->OnReceived.AddLambda([Weak](const TArray<uint8>& Data) {
+            if (Data.Num() == 2 && (Data[0] == 0xA5 || Data[0] == 0xA6))
+                if (auto S = Weak.lock()) S->Fail(TEXT("Second stream payload leaked into primary stream"));
+        });
+        Peer->OnIncomingStream.AddLambda([Weak, WeakPeer = std::weak_ptr<FMqasPeer>(Peer)](std::shared_ptr<BaseDirectStream> Base) {
+            if (Base->GetDirectStreamType() != EMqasDirectStreamType::Datagram) return;
+            auto Stream = std::static_pointer_cast<FMqasDatagram>(Base);
+            GSY_P2PStreamId Local = 0, Remote = 0;
+            if (Stream->GetStreamIds(Local, Remote) != EC_Ok) { if (auto S = Weak.lock()) S->Fail(TEXT("Incoming stream IDs unavailable")); return; }
+            if (auto P = WeakPeer.lock(); !P || P->FindDirectStream(Remote) != Stream) {
+                if (auto S = Weak.lock()) S->Fail(TEXT("Incoming stream lookup returned the wrong object")); return;
+            }
+            if (Remote == 202 || Remote == 303) if (auto S = Weak.lock()) S->SetupExtra(Stream, true, Remote == 303);
+        });
+        if (Result.Data.is_server) {
+            auto Third = Peer->AddStream<FMqasDatagram>(303);
+            if (!Third) { Fail(TEXT("Could not attach server stream")); return; }
+            SetupExtra(Third, false, true);
+            Peer->OnConnected.AddLambda([Weak, Third] {
+                if (Third->Open() != EC_Pending) if (auto S = Weak.lock()) S->Fail(TEXT("Server stream open failed"));
+            });
+        } else {
+            auto Extra = Peer->AddStream<FMqasDatagram>(202);
+            if (!Extra) { Fail(TEXT("Could not attach second stream")); return; }
+            SetupExtra(Extra, false, false);
+            Peer->OnConnected.AddLambda([Weak, Extra] {
+                if (Extra->Open() != EC_Pending) if (auto S = Weak.lock()) S->Fail(TEXT("Second stream open failed"));
+            });
+        }
+    }
+    void SetupExtra(const std::shared_ptr<FMqasDatagram>& Stream, bool AlreadyConnected, bool Third)
+    {
+        if (!Third) ExtraStream = Stream;
+        std::weak_ptr<FTravelSmoke> Weak = shared_from_this();
+        std::weak_ptr<FMqasDatagram> WeakStream = Stream;
+        Stream->OnFailed.AddLambda([Weak](ErrorCode E) { if (auto S = Weak.lock()) S->Fail(FString::Printf(TEXT("Second stream failure %d"), int(E))); });
+        if (!Third) Stream->OnDisconnected.AddLambda([Weak](const FString&) { if (auto S = Weak.lock()) S->bExtraClosed = true; });
+        Stream->OnReceived.AddLambda([Weak, Third](const TArray<uint8>& Data) {
+            if (auto S = Weak.lock()) {
+                if (Data.Num() != 2 || Data[0] != (Third ? 0xA6 : 0xA5) || Data[1] != (S->bHost ? 2 : 1)) S->Fail(TEXT("Additional stream received wrong payload"));
+                else if (Third) S->bThirdReceived = true; else S->bExtraReceived = true;
+            }
+        });
+        Stream->OnChannelOpened.AddLambda([Weak, WeakStream, Third] {
+            auto S = Weak.lock(); auto D = WeakStream.lock(); if (!S || !D) return;
+            TArray<uint8> Data{static_cast<uint8>(Third ? 0xA6 : 0xA5), static_cast<uint8>(S->bHost ? 1 : 2)};
+            if (D->Send(Data) != EC_Pending) S->Fail(TEXT("Additional stream send failed"));
+            else if (Third) S->bThirdSent = true; else S->bExtraSent = true;
+        });
+        auto Open = [Weak, WeakStream] {
+            if (auto D = WeakStream.lock()) { const auto Code = D->OpenChannel(); if (Code != EC_Pending)
+                if (auto S = Weak.lock()) S->Fail(FString::Printf(TEXT("Second stream channel open failed %d"), int(Code)));
+            }
+        };
+        if (AlreadyConnected) Open(); else Stream->OnConnected.AddLambda(Open);
     }
     bool Tick(float)
     {
         if (bPassed) return false;
+        if (bReadyToClose && bPeerClosed) {
+            bPassed = true;
+            UE_LOG(LogTemp, Display, TEXT("P2P_TRAVEL_SMOKE_PASS role=%s"), bHost ? TEXT("host") : TEXT("join"));
+            return false;
+        }
+        if (bReadyToClose && !bHost && !bPeerCloseRequested && FPlatformTime::Seconds() - ReadyAt >= 3.0) {
+            bPeerCloseRequested = true;
+            if (auto Base = PeerConnection.lock()) Base->Disconnect();
+            else Fail(TEXT("Peer connection disappeared before close"));
+        }
+        if (!bHost && !bExtraCloseRequested && bExtraSent && bExtraReceived && bThirdSent && bThirdReceived) {
+            bExtraCloseRequested = true;
+            if (auto Stream = ExtraStream.lock(); !Stream || Stream->Disconnect() != EC_Pending)
+                Fail(TEXT("Could not close extra stream"));
+        }
         if (Lobby && Self != INVALID_PID && !bHost && !bRequested && FPlatformTime::Seconds() - LastFetch > 0.5) {
             LastFetch = FPlatformTime::Seconds();
             Lobby->FetchPeerList();
@@ -157,12 +257,9 @@ struct FTravelSmoke : ILobbyEventListener, std::enable_shared_from_this<FTravelS
                 UE_LOG(LogTemp, Log, TEXT("P2P_TRAVEL_SMOKE local input moved character"));
                 Viewport->InputKey(FInputKeyEventArgs(Viewport->Viewport, FInputDeviceId::CreateFromInternalId(0), EKeys::W, IE_Released, FPlatformTime::Cycles64()));
             }
-            if (bLocalMovedByInput && RemoteDistance > 5) {
+            if (bLocalMovedByInput && RemoteDistance > 5 && bExtraSent && bExtraReceived && bThirdSent && bThirdReceived && bExtraClosed) {
                 if (ToastShownAt > 0 && FPlatformTime::Seconds() - ToastShownAt >= 3.0) {
-                    bPassed = true;
-                    UE_LOG(LogTemp, Display, TEXT("P2P_TRAVEL_SMOKE_PASS role=%s remote=(%.1f,%.1f)"),
-                        bHost ? TEXT("host") : TEXT("join"), Position.X, Position.Y);
-                    return false;
+                    if (!bReadyToClose) { bReadyToClose = true; ReadyAt = FPlatformTime::Seconds(); }
                 }
             }
         }

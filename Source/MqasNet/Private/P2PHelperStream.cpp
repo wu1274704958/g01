@@ -48,6 +48,7 @@ P2PHelperStream::P2PHelperStream() : BaseStream()
 	_Context.on_change_to_helper_result = Cb_OnChangeToHelperResult;
 	_Context.on_attempt_connect         = Cb_OnAttemptConnect;
 	_Context.on_helper_quit_result      = Cb_OnHelperQuitResult;
+	_Context.on_p2p_server_ready       = Cb_OnP2PServerReady;
 }
 
 P2PHelperStream::~P2PHelperStream()
@@ -136,6 +137,10 @@ void P2PHelperStream::Cb_OnHelperQuitResult(GSY_StreamId sid, GSY_HelperResult* 
         else if (Copy.Data.ret == EC_Ok) Copy.ReleaseSession();
     });
 }
+void P2PHelperStream::Cb_OnP2PServerReady(GSY_StreamId sid, GSY_PeerId peer, GSY_SessionHandle session)
+{
+    DispatchLobbyCallback([sid,peer,session] { if (auto* self = GetInstance(sid)) self->OnP2PServerReady(sid,peer,session); });
+}
 
 void P2PHelperStream::OnRegistrationSuccess(ErrorCode err, GSY_StreamId sid, GSY_PeerId peerId)
 {
@@ -190,6 +195,11 @@ void P2PHelperStream::OnHelperQuitResult(GSY_StreamId sid, const FP2PHelperResul
     auto Native = result.Native();
     _EventListeners.Dispatch(&ILobbyEventListener::OnHelperQuitResult, sid, &Native);
 }
+void P2PHelperStream::OnP2PServerReady(GSY_StreamId sid, GSY_PeerId peer, GSY_SessionHandle session)
+{
+    OnServerReady.Broadcast(peer, session);
+    _EventListeners.Dispatch(&ILobbyEventListener::OnP2PServerReady, sid, peer, session);
+}
 
 ErrorCode P2PHelperStream::FetchPeerList(GSY_RequestId RequestId)
 {
@@ -199,4 +209,20 @@ ErrorCode P2PHelperStream::FetchPeerList(GSY_RequestId RequestId)
 		return ErrorCode::EC_Fail;
 	}
 	return GSY_FetchPeerList(_hwnd, _streamId, RequestId);
+}
+
+ErrorCode P2PHelperStream::RequestPeer(GSY_PeerId Peer, GSY_ServerPreference Preference, GSY_RequestId RequestId)
+{
+    if (!_bIsRegistered) return EC_Fail;
+    return GSY_RequestConnectPeerWithPreference(_hwnd, _streamId, Peer, Preference, RequestId);
+}
+ErrorCode P2PHelperStream::RespondPeer(GSY_PeerId Peer, bool Accept, GSY_ServerPreference Preference, GSY_RequestId RequestId)
+{
+    if (!_bIsRegistered) return EC_Fail;
+    return GSY_RespondPeerConnectRequestWithPreference(_hwnd, _streamId, Peer, Accept, Preference, RequestId);
+}
+ErrorCode P2PHelperStream::NotifyP2PServerReady(GSY_SessionHandle Session)
+{
+    if (!_bIsRegistered) return EC_Fail;
+    return GSY_NotifyP2PServerReady(_hwnd, _streamId, Session);
 }

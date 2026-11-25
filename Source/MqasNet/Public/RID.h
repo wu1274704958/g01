@@ -1,5 +1,5 @@
-﻿#pragma once
-#include "example1/lobby.h"
+#pragma once
+#include "gsync/example1/lobby.h"
 
 enum class RID : GSY_RequestId
 {

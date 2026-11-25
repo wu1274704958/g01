@@ -12,26 +12,20 @@
 #include <stdbool.h>
 #endif
 
-#include "core/engine.h"
-#include "core/connection.h"
-#include "core/session_handle.h"
+#include "gsync/example1/types.h"
+#include "gsync/core/runtime.h"
+#include "gsync/core/connection.h"
+#include "gsync/core/session_handle.h"
 
 #if __cplusplus
 extern "C" {
 #endif
 
-    typedef uint32_t GSY_PeerId;
-    typedef uint32_t GSY_RequestId;
-
-    #ifdef __cplusplus
-    const GSY_StreamId INVALID_SID = 0;
-    const GSY_PeerId INVALID_PID = 0;
-    const GSY_RequestId NONE_RID = 0;
-    #else
-    #define INVALID_SID ((GSY_StreamId)0)
-    #define INVALID_PID ((GSY_PeerId)0)
-    #define NONE_RID ((GSY_RequestId)0)
-    #endif
+    typedef enum GSY_ServerPreference {
+        GSY_SERVER_NO_PREFERENCE = 0,
+        GSY_SERVER_VOLUNTEER = 1,
+        GSY_SERVER_REUSABLE = 2,
+    } GSY_ServerPreference;
 
     typedef struct GSYNC_EXTERN GSY_PeerData
     {
@@ -80,17 +74,22 @@ extern "C" {
         void(*on_helper_quit_result)(GSY_StreamId,GSY_HelperResult*);
         void* extend;
         uint8_t _check_code;//do not modify
+        /* Delivered on the I/O thread after the matching helper result. */
+        void(*on_p2p_server_ready)(GSY_StreamId, GSY_PeerId, GSY_SessionHandle);
     } GSY_LobbyStreamContext;
 
     GSY_StreamId GSYNC_EXTERN GSY_RegisterToLobby(GSY_ConnectionHwnd handle,const char* name,const char* psd,GSY_LobbyStreamContext*);
     ErrorCode GSYNC_EXTERN GSY_UnregisterFromLobby(GSY_ConnectionHwnd handle,GSY_StreamId sid,GSY_RequestId request_id);
     ErrorCode GSYNC_EXTERN GSY_FetchPeerList(GSY_ConnectionHwnd handle,GSY_StreamId stream_id,GSY_RequestId request_id);
     ErrorCode GSYNC_EXTERN GSY_RequestConnectPeer(GSY_ConnectionHwnd handle,GSY_StreamId sid,GSY_PeerId peer_id,GSY_RequestId request_id);
+    ErrorCode GSYNC_EXTERN GSY_RequestConnectPeerWithPreference(GSY_ConnectionHwnd, GSY_StreamId, GSY_PeerId, GSY_ServerPreference, GSY_RequestId);
     ErrorCode GSYNC_EXTERN GSY_RespondPeerConnectRequest(GSY_ConnectionHwnd handle,GSY_StreamId sid,GSY_PeerId peer_id,bool accept,GSY_RequestId request_id);
+    ErrorCode GSYNC_EXTERN GSY_RespondPeerConnectRequestWithPreference(GSY_ConnectionHwnd, GSY_StreamId, GSY_PeerId, bool, GSY_ServerPreference, GSY_RequestId);
     /* Release an unused session after failure or when it is no longer needed.
        A session with an active connection attempt returns EC_SessionBusy;
        close the peer and wait for on_failed before releasing it. */
     ErrorCode GSYNC_EXTERN GSY_ReleaseP2PSession(GSY_SessionHandle session);
+    ErrorCode GSYNC_EXTERN GSY_NotifyP2PServerReady(GSY_ConnectionHwnd, GSY_StreamId, GSY_SessionHandle);
 
 #if __cplusplus
 }

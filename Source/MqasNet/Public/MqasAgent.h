@@ -21,6 +21,7 @@ public:
 };
 
 struct FMqasClientState;
+class FMqasServer;
 class MQASNET_API FMqasAgent final : public IMqasAgent
 {
 public:
@@ -35,12 +36,22 @@ public:
     TArray<GSY_PeerId> AgentGetPeerIds(FMqasClientId Client) const override;
     std::weak_ptr<BaseConnect> AgentConnectTo(FMqasClientId Client, GSY_EngineId Engine,
         const FString& Config, const FString& Ip, short Port) override;
+    // Options are read synchronously by the SDK. Callbacks use the common connection lifecycle.
+    std::weak_ptr<BaseConnect> Connect(FMqasClientId Client, GSY_EngineId Engine,
+        const FString& Config, const FString& Ip, short Port, const GSY_ContextExtension* Options);
+    // Starts an outbound connection using a negotiated SDK session. The returned
+    // object follows the same lifecycle and callbacks as any other connection.
+    ErrorCode ConnectSession(FMqasClientId Client, const FString& Config,
+        GSY_SessionHandle Session, std::weak_ptr<BaseConnect>& OutConnection,
+        std::shared_ptr<BaseConnect> Connection = {});
     FString GetConfigPath(FMqasClientId Client, const FString& Config) const;
-    void RetainPeer(FMqasClientId Client, const std::shared_ptr<FMqasPeer>& Peer,
-        const std::shared_ptr<FMqasDatagram>& Datagram = nullptr);
+    void RetainPeer(FMqasClientId Client, const std::shared_ptr<FMqasPeer>& Peer);
+    // A server may be retained by more than one logical client. It is stopped
+    // when its last owner releases it, unless explicitly stopped earlier.
+    bool RetainServer(FMqasClientId Client, const std::shared_ptr<FMqasServer>& Server);
+    void ReleaseServer(FMqasClientId Client, const std::shared_ptr<FMqasServer>& Server);
     TArray<std::shared_ptr<FMqasPeer>> FindPeers(FMqasClientId Client, GSY_PeerId Remote) const;
-    bool FindPeer(FMqasClientId Client, GSY_PeerId Remote, std::shared_ptr<FMqasPeer>& OutPeer,
-        std::shared_ptr<FMqasDatagram>& OutDatagram) const;
+    bool FindPeer(FMqasClientId Client, GSY_PeerId Remote, std::shared_ptr<FMqasPeer>& OutPeer) const;
 private:
     FMqasAgent();
     ~FMqasAgent();

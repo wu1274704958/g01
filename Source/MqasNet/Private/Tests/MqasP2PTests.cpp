@@ -2,7 +2,10 @@
 #include "Misc/AutomationTest.h"
 #include "MqasP2P.h"
 #include "MqasAgent.h"
+#include "MqasServer.h"
 #include "Async/Async.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
 
 namespace {
 class FTrackingStream : public BaseStream
@@ -12,6 +15,13 @@ public:
 protected:
     void OnClose() override { ++CloseCount; BaseStream::OnClose(); }
 };
+class FAsyncStream : public FTrackingStream
+{
+public:
+    int* GetContext() { return &Context; }
+private:
+    int Context = 0;
+};
 class FTestConnection : public BaseConnect
 {
 public:
@@ -20,6 +30,7 @@ public:
         Stream->InitData(Id, 123);
         _StreamMap.emplace(Id, Stream);
     }
+    void SimulateConnect() { InitData(123, 0, FString(), FString(), 0); OnConnected(EC_Ok); }
     void SimulateDisconnect() { OnDisconnect(EC_Disconnected); }
     void SimulateStreamClose(GSY_StreamId Id) { OnStreamClose(Id, EC_Ok); }
 };
@@ -28,6 +39,41 @@ class FTestLobbyStream : public P2PHelperStream
 public:
     void CloseForTest() { OnClose(); }
 };
+class FCustomDatagram : public FMqasDatagram
+{
+public:
+    static std::shared_ptr<FCustomDatagram> Create() { return std::shared_ptr<FCustomDatagram>(new FCustomDatagram()); }
+};
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FMqasAsyncStreamCreationTest, "MqasNet.Lifecycle.AsyncStreamCreation",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FMqasAsyncStreamCreationTest::RunTest(const FString&)
+{
+    auto Connection = std::make_shared<FTestConnection>();
+    Connection->SimulateConnect();
+    auto Stream = std::make_shared<FAsyncStream>();
+    auto Completed = std::make_shared<bool>(false);
+    auto Code = Connection->MakeStream(Stream, [](GSY_ConnectionHwnd, int*, BaseConnect::FStreamCreated Complete, void* User) {
+        Complete(EC_Ok, 42, 1234, User);
+        return EC_Pending;
+    }, [this, Completed](ErrorCode Result, GSY_StreamId Id, GSY_RequestId Rid) {
+        TestEqual(TEXT("Completion result"), Result, EC_Ok);
+        TestEqual(TEXT("Completion stream ID"), Id, GSY_StreamId(42));
+        TestEqual(TEXT("Completion request ID"), Rid, GSY_RequestId(1234));
+        *Completed = true;
+    });
+    TestEqual(TEXT("Request accepted"), Code, EC_Pending);
+    const auto Start = FPlatformTime::Seconds();
+    ADD_LATENT_AUTOMATION_COMMAND(FFunctionLatentCommand([this, Connection, Stream, Completed, Start] {
+        if (!*Completed && FPlatformTime::Seconds() - Start < 3.0) return false;
+        TestTrue(TEXT("Completed on game thread"), *Completed);
+        TestTrue(TEXT("Connection owns the SDK stream"), Connection->FindStream(42) == Stream && Stream->Valid());
+        Connection->SimulateDisconnect();
+        TestFalse(TEXT("Connection invalidates the stream"), Stream->Valid());
+        return true;
+    }));
+    return true;
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FMqasConnectionStreamLifetimeTest, "MqasNet.Lifecycle.ConnectionStreams", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
@@ -102,14 +148,31 @@ bool FMqasHelperResultTest::RunTest(const FString&)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FMqasPeerConfigurationTest, "MqasNet.P2P.Configuration", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FMqasPeerConfigurationTest::RunTest(const FString&)
 {
-    auto Peer = FMqasPeer::Create(); auto Datagram = FMqasDatagram::Create(); auto Other = FMqasPeer::Create();
+    auto Peer = FMqasPeer::Create(); auto Other = FMqasPeer::Create();
+    std::shared_ptr<BaseConnect> BasePeer = Peer;
+    static_assert(std::has_virtual_destructor_v<BaseConnect>);
+    TestFalse(TEXT("Peer base interface begins disconnected"), BasePeer->IsConnected());
+    TestEqual(TEXT("Peer base interface begins without connection handle"), BasePeer->GetHwnd(), InvalidConnection);
+    BasePeer->Disconnect();
+    auto Datagram = Peer->AddStream<FMqasDatagram>(101);
+    if (!TestTrue(TEXT("Attach datagram after disconnecting an idle peer"), bool(Datagram))) return false;
     TestFalse(TEXT("Peer begins disconnected"), Peer->IsConnected());
     TestFalse(TEXT("Datagram begins disconnected"), Datagram->IsConnected());
-    TestTrue(TEXT("Attach datagram"), Peer->SetDatagram(Datagram));
-    auto Second = FMqasDatagram::Create();
-    TestFalse(TEXT("A peer cannot attach a second datagram"), Peer->SetDatagram(Second));
-    TestFalse(TEXT("Datagram cannot attach to two peers"), Other->SetDatagram(Datagram));
+    TestFalse(TEXT("Stream id must be nonzero"), bool(Peer->AddStream<FMqasDatagram>(0)));
+    TestFalse(TEXT("Duplicate local stream ID is rejected"), bool(Peer->AddStream<FMqasDatagram>(101)));
+    TestTrue(TEXT("A peer can attach another stream with a different ID"), bool(Peer->AddStream<FMqasDatagram>(102)));
+    auto Custom = Peer->AddStream<FCustomDatagram>(103);
+    TestTrue(TEXT("Custom stream subclass can be registered"), bool(Custom));
+    TestTrue(TEXT("Local lookup preserves custom stream identity"), Peer->FindLocalStream(103) == Custom);
+    TestEqual(TEXT("Local stream ID"), Datagram->GetLocalStreamId(), static_cast<GSY_P2PStreamId>(101));
     TestEqual(TEXT("Cannot open before transport"), Datagram->Open(), EC_Fail);
+    TestFalse(TEXT("Channel begins closed"), Datagram->IsChannelOpen());
+    TestEqual(TEXT("Cannot open channel before stream"), Datagram->OpenChannel(), EC_Fail);
+    TestEqual(TEXT("Cannot close channel before stream"), Datagram->CloseChannel(), EC_Fail);
+    GSY_P2PStreamId Local = 123, Remote = 123;
+    TestEqual(TEXT("Cannot query ids before stream"), Datagram->GetStreamIds(Local, Remote), EC_Fail);
+    TestEqual(TEXT("Invalid local id is reset"), Local, static_cast<GSY_P2PStreamId>(0));
+    TestEqual(TEXT("Invalid remote id is reset"), Remote, static_cast<GSY_P2PStreamId>(0));
     TArray<uint8> Data{1};
     TestEqual(TEXT("Cannot send before authentication"), Datagram->Send(Data), EC_Fail);
     return true;
@@ -136,6 +199,64 @@ bool FMqasClientLifecycleTest::RunTest(const FString&)
     TestTrue(TEXT("SDK can initialize for a later session"), Agent.AgentIsInitialized(C));
     TestNotEqual(TEXT("New client id is not reused"), C, B);
     Agent.ReleaseClient(C);
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FMqasServerLifecycleTest, "MqasNet.Server.StartStop", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FMqasServerLifecycleTest::RunTest(const FString&)
+{
+    const FString Fixture = FPaths::ConvertRelativePathToFull(FPaths::ProjectSavedDir() / TEXT("LocalP2PBundle/server"));
+    const FString Cert = (Fixture / TEXT("cert-def.pem")).Replace(TEXT("\\"), TEXT("/"));
+    const FString Key = (Fixture / TEXT("key-def.pem")).Replace(TEXT("\\"), TEXT("/"));
+    if (!FPaths::FileExists(Cert) || !FPaths::FileExists(Key)) { AddWarning(TEXT("Local P2P test certificate unavailable; server integration test skipped.")); return true; }
+    const FString Config = FPaths::ConvertRelativePathToFull(FPaths::ProjectSavedDir() / TEXT("MqasServerAutomation.toml"));
+    const FString Contents = FString::Printf(TEXT("[engine_config]\nbind_ip=\"127.0.0.1\"\nport=0\nlog_level=\"info\"\nalpn=\"echo\"\nssl_cert_path=\"%s\"\nssl_key_path=\"%s\"\n"), *Cert, *Key);
+    if (!FFileHelper::SaveStringToFile(Contents, *Config)) { AddError(TEXT("Could not write server test configuration")); return false; }
+    auto& Agent = FMqasAgent::Get();
+    const auto Client = Agent.CreateClient();
+    if (Client == InvalidMqasClient) { AddError(TEXT("SDK initialization failed")); return false; }
+    struct FState { bool Started = false, Stopped = false, Failed = false; };
+    auto Result = std::make_shared<FState>();
+    auto Server = FMqasServer::Create();
+    std::weak_ptr<FMqasServer> Weak = Server;
+    Server->OnStarted.AddLambda([Result, Weak](ErrorCode Code) {
+        Result->Started = Code == EC_Ok;
+        if (auto S = Weak.lock(); !S || S->Stop() != EC_Ok) Result->Failed = true;
+    });
+    Server->OnStopped.AddLambda([Result](ErrorCode Code) { Result->Stopped = Code == EC_Ok; });
+    Server->OnError.AddLambda([Result](ErrorCode) { Result->Failed = true; });
+    TestNotEqual(TEXT("Launch returns a server handle"), Server->Launch(1, Config), static_cast<GSY_ServerHwnd>(InvalidServer));
+    const double Start = FPlatformTime::Seconds();
+    ADD_LATENT_AUTOMATION_COMMAND(FFunctionLatentCommand([this, Result, Server, Client, Start] {
+        if (!Result->Stopped && !Result->Failed && FPlatformTime::Seconds() - Start < 10.0) return false;
+        TestTrue(TEXT("Server started"), Result->Started);
+        TestTrue(TEXT("Server stopped"), Result->Stopped);
+        TestFalse(TEXT("No server error"), Result->Failed);
+        FMqasAgent::Get().ReleaseClient(Client);
+        return true;
+    }));
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FMqasServerStartFailureTest, "MqasNet.Server.StartFailure", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FMqasServerStartFailureTest::RunTest(const FString&)
+{
+    const auto Client = FMqasAgent::Get().CreateClient();
+    if (Client == InvalidMqasClient) { AddError(TEXT("SDK initialization failed")); return false; }
+    auto Server = FMqasServer::Create();
+    auto Failure = std::make_shared<ErrorCode>(EC_Ok);
+    Server->OnError.AddLambda([Failure](ErrorCode Code) { *Failure = Code; });
+    const FString Missing = FPaths::ProjectSavedDir() / TEXT("mqas-missing-server-configuration.toml");
+    TestNotEqual(TEXT("Invalid configuration returns an asynchronous handle"), Server->Launch(1, Missing), static_cast<GSY_ServerHwnd>(InvalidServer));
+    const double Start = FPlatformTime::Seconds();
+    ADD_LATENT_AUTOMATION_COMMAND(FFunctionLatentCommand([this, Server, Client, Failure, Start] {
+        if (*Failure == EC_Ok && FPlatformTime::Seconds() - Start < 10.0) return false;
+        TestNotEqual(TEXT("Startup failure reports an error"), *Failure, EC_Ok);
+        TestFalse(TEXT("Failed server is not started"), Server->IsStarted());
+        TestEqual(TEXT("Failed server cannot be stopped"), Server->Stop(), EC_InvalidHandler);
+        FMqasAgent::Get().ReleaseClient(Client);
+        return true;
+    }));
     return true;
 }
 #endif

@@ -15,7 +15,7 @@ class AP2PLinkController : public AController
 public:
     DECLARE_MULTICAST_DELEGATE_OneParam(FStatus, const FString&);
     FStatus OnStatus;
-    bool StartLink(GSY_PeerId LocalPeer, const FP2PHelperResult& Result);
+    bool StartLink(const std::shared_ptr<P2PHelperStream>& Lobby, const FP2PHelperResult& Result);
     bool AttachLink(GSY_PeerId RemotePeer);
     void SendState(const TArray<uint8>& Data);
     uint32 NextStateSequence();

@@ -5,18 +5,18 @@
 #ifndef GSYNC_SERVER_H
 #define GSYNC_SERVER_H
 
-#include "macro.h"
-#include "def.h"
+#include "gsync/core/macro.h"
+#include "gsync/core/types.h"
 #include "connection.h"
+#include "session_handle.h"
 
 #if __cplusplus
 extern "C" {
 #endif
 
     typedef unsigned int GSY_ServerHwnd;
-    inline GSY_ServerHwnd InvalidServer = 0;
-
-    struct GSYNC_EXTERN GSY_BaseServerContext {
+#define InvalidServer ((GSY_ServerHwnd)0)
+    typedef struct GSYNC_EXTERN GSY_BaseServerContext {
         // 服务器启动成功/失败回调
         void(*on_started)(ErrorCode, GSY_ServerHwnd);
         // 服务器停止完成回调
@@ -28,7 +28,9 @@ extern "C" {
         // 客户端断开
         void(*on_client_disconnect)(GSY_ServerHwnd, GSY_ConnectionHwnd);
         void* extend;
-    };
+        /* Read synchronously by GSY_launch_server. */
+        const GSY_ContextExtension* options;
+    } GSY_BaseServerContext;
 
     // 兼容的固定监听地址可共享 engine；各句柄按启动顺序尝试接收新连接。
     // cxt 须保持有效，直到启动失败回调或停止回调返回。

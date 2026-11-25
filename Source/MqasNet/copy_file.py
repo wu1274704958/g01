@@ -1,80 +1,81 @@
 #!/usr/bin/env python3
+"""Copy selected public gsync modules and one build configuration into MqasNet."""
+import argparse
 import os
 import shutil
-import sys
 from pathlib import Path
 
+MODULE_LIBRARIES = {"example1": "gsync_e1"}
+LEGACY_HEADERS = (
+    "include/def.h", "include/macro.h", "include/core/engine.h",
+    "include/core/connection.h", "include/core/server.h", "include/core/session_handle.h",
+    "include/core/p2p_context.h", "example1/lobby.h", "example1/p2p_peer.h",
+    "example1/p2p_connection_datagram.h", "example1/p2p_peer_internal.h",
+    "include/gsync/example1/p2p_peer.h", "example1/p2p_session.h", "example1/p2p_session_registry.h", "example1/p2p_datagram.pb.h",
+)
+
 def main():
-    # 确定源目录
-    if 'GSYNC_ROOT' in os.environ:
-        gsync_root = Path(os.environ['GSYNC_ROOT'])
-        print(f"使用环境变量 GSYNC_ROOT: {gsync_root}")
-    elif len(sys.argv) > 1:
-        gsync_root = Path(sys.argv[1])
-        print(f"使用命令行参数 GSYNC_ROOT: {gsync_root}")
-    else:
-        print("错误：未设置 GSYNC_ROOT")
-        print("用法:")
-        print("  1. 设置环境变量: export GSYNC_ROOT=/path/to/gsync_root")
-        print("  2. 或直接运行: ./copy_files.py /path/to/gsync_root")
-        sys.exit(1)
-    
-    # 检查源目录是否存在
-    if not gsync_root.is_dir():
-        print(f"错误：源目录 {gsync_root} 不存在")
-        sys.exit(1)
-    
-    # 目标目录是当前工作目录
-    dest_dir = Path.cwd()
-    print(f"从 {gsync_root} 复制文件到当前目录: {dest_dir}")
-    
-    # 复制 include 目录
-    include_src = gsync_root / "include"
-    if include_src.is_dir():
-        print("复制 include/ 目录...")
-        include_dest = dest_dir / "include"
-        shutil.copytree(include_src, include_dest, dirs_exist_ok=True)
-    else:
-        print("警告：include/ 目录不存在")
-    
-    # 复制 output 目录
-    output_src = gsync_root / "output"
-    if output_src.is_dir():
-        print("复制 output/ 目录...")
-        output_dest = dest_dir / "output"
-        shutil.copytree(output_src, output_dest, dirs_exist_ok=True)
-    else:
-        print("警告：output/ 目录不存在")
-    
-    # 复制所有 example* 目录中的 .h 文件（只查找 GSYNC_ROOT 下的直接子目录）
-    print("复制 GSYNC_ROOT 下的 example* 目录中的 .h 文件...")
-    
-    # 查找所有以 "example" 开头的直接子目录
-    example_dirs = [d for d in gsync_root.iterdir() 
-                    if d.is_dir() and d.name.startswith("example")]
-    
-    if not example_dirs:
-        print("警告：未找到以 'example' 开头的目录")
-    
-    # 复制每个 example 目录中的 .h 文件
-    for example_dir in example_dirs:
-        print(f"处理目录: {example_dir.name}")
-        
-        # 计算相对于源目录的相对路径
-        rel_path = example_dir.relative_to(gsync_root)
-        
-        # 遍历所有 .h 文件（递归查找）
-        for h_file in example_dir.rglob("*.h"):
-            # 计算目标路径
-            file_rel_path = h_file.relative_to(gsync_root)
-            dest_file = dest_dir / file_rel_path
-            
-            # 创建目标目录并复制文件
-            dest_file.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(h_file, dest_file)
-            print(f"  已复制: {file_rel_path}")
-    
-    print("文件复制完成！")
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("root", nargs="?", default=os.environ.get("GSYNC_ROOT"))
+    parser.add_argument("--platform", default="windows")
+    parser.add_argument("--arch", default="x64")
+    parser.add_argument("--config", default="release")
+    parser.add_argument("--modules", nargs="+", choices=MODULE_LIBRARIES, default=["example1"])
+    args = parser.parse_args()
+    if not args.root:
+        parser.error("provide the gsync root or set GSYNC_ROOT")
+    root = Path(args.root).resolve()
+    dest = Path(__file__).resolve().parent
+    modules = ["core", *dict.fromkeys(args.modules)]
+    for module in modules:
+        source = root / "include" / "gsync" / module
+        if not source.is_dir():
+            raise FileNotFoundError(source)
+        target = dest / "include" / "gsync" / module
+        target.mkdir(parents=True, exist_ok=True)
+        for header in source.rglob("*.h"):
+            destination = target / header.relative_to(source)
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(header, destination)
+    build = root / "output" / args.platform / args.arch / args.config
+    target_build = dest / "output" / args.platform / args.arch / args.config
+    lib_suffix = ".lib" if args.platform == "windows" else ".a"
+    for module in args.modules:
+        name = MODULE_LIBRARIES[module]
+        matches = list((build / "lib").glob(f"*{name}{lib_suffix}"))
+        if not matches:
+            raise FileNotFoundError(f"import library for {name} not found in {build / 'lib'}")
+        (target_build / "lib").mkdir(parents=True, exist_ok=True)
+        for library in matches:
+            shutil.copy2(library, target_build / "lib" / library.name)
+    binary_dir = build / "bin"
+    manifest = binary_dir / "dependencies.ini"
+    if not manifest.is_file():
+        raise FileNotFoundError(manifest)
+    names = {Path(item.replace("\\", "/")).name for item in manifest.read_text().split(";") if item.strip()}
+    dependency_pattern = "mqas.dll" if args.platform == "windows" else "libmqas.so*" if args.platform == "linux" else "libmqas.dylib"
+    mqas_libraries = list(binary_dir.glob(dependency_pattern))
+    if not mqas_libraries:
+        raise FileNotFoundError(f"mqas runtime library not found in {binary_dir}")
+    names.update(p.name for p in mqas_libraries)
+    for module in args.modules:
+        stem = MODULE_LIBRARIES[module]
+        candidates = list(binary_dir.glob(f"*{stem}.dll" if args.platform == "windows" else f"*{stem}.so*" if args.platform == "linux" else f"*{stem}.dylib"))
+        if not candidates:
+            raise FileNotFoundError(f"runtime library for {stem} not found in {binary_dir}")
+        names.update(p.name for p in candidates)
+    (target_build / "bin").mkdir(parents=True, exist_ok=True)
+    for name in sorted(names):
+        source = binary_dir / name
+        if not source.is_file():
+            raise FileNotFoundError(source)
+        shutil.copy2(source, target_build / "bin" / name)
+    (target_build / "bin" / "gsync-runtime.txt").write_text("\n".join(sorted(names)) + "\n", encoding="utf-8")
+    for old in LEGACY_HEADERS:
+        path = dest / old
+        if path.is_file():
+            path.unlink()
+    print(f"Copied {', '.join(modules)} for {args.platform}/{args.arch}/{args.config}")
 
 if __name__ == "__main__":
     main()

@@ -10,7 +10,11 @@
 #include "Misc/Paths.h"
 #include "P2PStatePacket.h"
 
-bool AP2PLinkController::StartLink(GSY_PeerId LocalPeer, const FP2PHelperResult& Result)
+namespace {
+constexpr GSY_P2PStreamId CharacterSyncStreamId = 101;
+}
+
+bool AP2PLinkController::StartLink(const std::shared_ptr<P2PHelperStream>& Lobby, const FP2PHelperResult& Result)
 {
     Session = Result;
     bServer = Result.Data.is_server != 0;
@@ -20,9 +24,16 @@ bool AP2PLinkController::StartLink(GSY_PeerId LocalPeer, const FP2PHelperResult&
         return false;
     }
     Peer = FMqasPeer::Create();
-    Datagram = FMqasDatagram::Create();
-    if (!Peer->SetDatagram(Datagram)) { Session.ReleaseSession(); return false; }
+    Datagram = Peer->AddStream<FMqasDatagram>(CharacterSyncStreamId);
+    if (!Datagram) { Session.ReleaseSession(); return false; }
     BindLinkEvents();
+    Datagram->OnConnected.AddLambda([Weak = std::weak_ptr<FMqasDatagram>(Datagram),
+        WeakPeer = std::weak_ptr<FMqasPeer>(Peer)] {
+        if (auto D = Weak.lock()) { const auto Code = D->OpenChannel(); if (Code != EC_Pending) {
+            UE_LOG(LogTemp, Warning, TEXT("P2P datagram channel open failed: %d"), int32(Code));
+            if (auto P = WeakPeer.lock()) P->Close();
+        } }
+    });
     Peer->OnConnected.AddLambda([Weak = std::weak_ptr<FMqasDatagram>(Datagram),
         WeakPeer = std::weak_ptr<FMqasPeer>(Peer), Server = bServer] {
         if (!Server) if (auto D = Weak.lock()) {
@@ -32,20 +43,17 @@ bool AP2PLinkController::StartLink(GSY_PeerId LocalPeer, const FP2PHelperResult&
             }
         }
     });
-    Peer->OnFailed.AddLambda([Result](ErrorCode) { Result.ReleaseSession(); });
     auto* Subsystem = GetGameInstance() ? GetGameInstance()->GetSubsystem<UMqasClientSubsystem>() : nullptr;
     if (!Subsystem) { Session.ReleaseSession(); return false; }
     const auto Client = Subsystem->GetClientId();
     std::shared_ptr<FMqasPeer> ExistingPeer;
-    std::shared_ptr<FMqasDatagram> ExistingDatagram;
-    if (FMqasAgent::Get().FindPeer(Client, Result.Data.peer_id, ExistingPeer, ExistingDatagram)) {
+    if (FMqasAgent::Get().FindPeer(Client, Result.Data.peer_id, ExistingPeer)) {
         UE_LOG(LogTemp, Warning, TEXT("P2P peer %u already has an active link"), Result.Data.peer_id);
         Session.ReleaseSession(); return false;
     }
-    const FString Config = FMqasAgent::Get().GetConfigPath(Client, TEXT("NetConfig/conf_p2p.txt"));
-    const auto Error = Peer->Start(Config, LocalPeer, Result);
+    const auto Error = Peer->Start(Client, TEXT("NetConfig/conf_p2p.txt"), Lobby, Result);
     if (Error != EC_Pending) { UE_LOG(LogTemp, Warning, TEXT("P2P start failed: %d"), int32(Error)); Session.ReleaseSession(); return false; }
-    FMqasAgent::Get().RetainPeer(Client, Peer, Datagram);
+    FMqasAgent::Get().RetainPeer(Client, Peer);
     UE_LOG(LogTemp, Log, TEXT("P2P peer starting: remote=%u server=%d"), Result.Data.peer_id, int32(bServer));
     return true;
 }
@@ -55,7 +63,7 @@ void AP2PLinkController::BindLinkEvents()
     Peer->OnConnected.AddUObject(this, &AP2PLinkController::TransportConnected);
     Peer->OnFailed.AddUObject(this, &AP2PLinkController::Failed);
     Peer->OnClosed.AddUObject(this, &AP2PLinkController::Closed);
-    Datagram->OnConnected.AddUObject(this, &AP2PLinkController::DatagramConnected);
+    Datagram->OnChannelOpened.AddUObject(this, &AP2PLinkController::DatagramConnected);
     Datagram->OnReceived.AddUObject(this, &AP2PLinkController::ReceiveState);
     Datagram->OnFailed.AddUObject(this, &AP2PLinkController::Failed);
     Datagram->OnDisconnected.AddUObject(this, &AP2PLinkController::DatagramDisconnected);
@@ -63,10 +71,13 @@ void AP2PLinkController::BindLinkEvents()
 bool AP2PLinkController::AttachLink(GSY_PeerId RemotePeer)
 {
     auto* Subsystem = GetGameInstance() ? GetGameInstance()->GetSubsystem<UMqasClientSubsystem>() : nullptr;
-    if (!Subsystem || Peer || !FMqasAgent::Get().FindPeer(Subsystem->GetClientId(), RemotePeer, Peer, Datagram)) return false;
+    if (!Subsystem || Peer || !FMqasAgent::Get().FindPeer(Subsystem->GetClientId(), RemotePeer, Peer)) return false;
+    auto Stream = Peer->FindLocalStream(CharacterSyncStreamId);
+    if (!Stream || Stream->GetDirectStreamType() != EMqasDirectStreamType::Datagram) { Peer.reset(); return false; }
+    Datagram = std::static_pointer_cast<FMqasDatagram>(Stream);
     bAuthenticated = Peer->IsConnected();
     BindLinkEvents();
-    if (Datagram->IsConnected()) DatagramConnected();
+    if (Datagram->IsChannelOpen()) DatagramConnected();
     return true;
 }
 
@@ -123,7 +134,7 @@ uint32 AP2PLinkController::NextStateSequence()
 
 void AP2PLinkController::SendState(const TArray<uint8>& Data)
 {
-    if (Datagram && Datagram->IsConnected()) Datagram->Send(Data);
+    if (Datagram && Datagram->IsChannelOpen()) Datagram->Send(Data);
 }
 
 void AP2PLinkController::ReceiveState(const TArray<uint8>& Data)
@@ -141,7 +152,6 @@ void AP2PLinkController::Failed(ErrorCode Error)
 {
     UE_LOG(LogTemp, Warning, TEXT("P2P link failed: %d"), int32(Error));
     OnStatus.Broadcast(FString::Printf(TEXT("P2P connection failed: %d"), int32(Error)));
-    if (!bAuthenticated) Session.ReleaseSession();
     StopLink();
 }
 void AP2PLinkController::DatagramDisconnected(const FString& Reason)
@@ -166,7 +176,7 @@ void AP2PLinkController::EndPlay(const EEndPlayReason::Type Reason)
     if (StateSync) StateSync->DestroyComponent();
     if (RemotePawn) RemotePawn->Destroy();
     if (Peer) { Peer->OnConnected.RemoveAll(this); Peer->OnFailed.RemoveAll(this); Peer->OnClosed.RemoveAll(this); }
-    if (Datagram) { Datagram->OnConnected.RemoveAll(this); Datagram->OnReceived.RemoveAll(this); Datagram->OnFailed.RemoveAll(this); Datagram->OnDisconnected.RemoveAll(this); }
+    if (Datagram) { Datagram->OnChannelOpened.RemoveAll(this); Datagram->OnReceived.RemoveAll(this); Datagram->OnFailed.RemoveAll(this); Datagram->OnDisconnected.RemoveAll(this); }
     Datagram.reset();
     Peer.reset();
     Super::EndPlay(Reason);
