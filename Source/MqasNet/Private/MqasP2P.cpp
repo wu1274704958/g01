@@ -2,7 +2,6 @@
 #include "DirectStreamState.h"
 #include "MqasAgent.h"
 #include "MqasServer.h"
-#include "MqasSocket.h"
 #include "Containers/Ticker.h"
 #include "Async/Async.h"
 #include <atomic>
@@ -24,7 +23,6 @@ struct FMqasPeerState : std::enable_shared_from_this<FMqasPeerState> {
     GSY_PeerId Self = INVALID_PID, Other = INVALID_PID;
     FP2PHelperResult Session;
     std::shared_ptr<FMqasServer> Listener;
-    FMqasSocketHandle Socket;
     std::weak_ptr<P2PHelperStream> Lobby;
     FDelegateHandle ReadyHandle;
     FTSTicker::FDelegateHandle ReadyTimeout;
@@ -50,7 +48,6 @@ struct FMqasPeerState : std::enable_shared_from_this<FMqasPeerState> {
     void Finish(ErrorCode Error) {
         if (Finished.exchange(true)) return;
         StopWaiting();
-        Socket.Reset();
         auto ServerOwner = std::move(Listener);
         if (ServerOwner && !Connected && ServerOwner->IsStarted())
             GSY_CancelServerP2PSession(ServerOwner->GetHandle(), Session.Data.session_handle);
@@ -263,15 +260,12 @@ ErrorCode FMqasPeer::Start(uint64 Client, const FString& Config, const std::shar
 
     const FString Path = FMqasAgent::Get().GetConfigPath(Client, Config);
     if (Path.IsEmpty()) return EC_Fail;
-    const auto SocketResult = State->Socket.Acquire(Lobby->GetHwnd());
-    if (SocketResult != EC_Ok) return SocketResult;
     auto Server = FMqasServer::Create();
     std::weak_ptr<BaseConnect> WeakPeer = weak_from_this();
     Server->SetConnectionFactory([WeakPeer](GSY_ConnectionHwnd) { return WeakPeer.lock(); });
     Server->OnStarted.AddLambda([Weak](ErrorCode Code) {
         auto S = Weak.lock();
         if (!S || S->Finished) return;
-        S->Socket.Reset();
         if (Code == EC_Ok)
             Code = GSY_RegisterServerP2PSession(S->Listener->GetHandle(), S->Session.Data.session_handle);
         if (Code == EC_Ok) {
@@ -283,12 +277,11 @@ ErrorCode FMqasPeer::Start(uint64 Client, const FString& Config, const std::shar
     });
     Server->OnError.AddLambda([Weak](ErrorCode Code) { if (auto S = Weak.lock()) S->Finish(Code); });
     Server->OnStopped.AddLambda([Weak](ErrorCode) { if (auto S = Weak.lock()) S->Finish(EC_Disconnected); });
-    const GSY_P2PServerOptions Options{{GSY_CONTEXT_P2P_SERVER, sizeof(GSY_P2PServerOptions)},
-        State->Socket.Get(), StreamPolicy};
+    const GSY_P2PSessionServerOptions Options{{GSY_CONTEXT_P2P_SESSION_SERVER, sizeof(GSY_P2PSessionServerOptions)},
+        State->Session.Data.session_handle, StreamPolicy};
     State->Listener = Server;
     if (!Server->Launch(2, Path, &Options.header)) {
         State->Listener.reset();
-        State->Socket.Reset();
         return EC_Fail;
     }
     return EC_Pending;
